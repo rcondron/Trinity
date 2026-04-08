@@ -1,0 +1,10 @@
+{
+  "id": "mattermost",
+  "channels": ["mattermost"],
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {}
+  }
+}
+

@@ -1,0 +1,30 @@
+{
+  "name": "@Trinity/synology-chat",
+  "version": "2026.2.22",
+  "private": true,
+  "description": "Synology Chat channel plugin for Trinity",
+  "type": "module",
+  "devDependencies": {
+    "Trinity": "workspace:*"
+  },
+  "Trinity": {
+    "extensions": [
+      "./index.ts"
+    ],
+    "channel": {
+      "id": "synology-chat",
+      "label": "Synology Chat",
+      "selectionLabel": "Synology Chat (Webhook)",
+      "docsPath": "/channels/synology-chat",
+      "docsLabel": "synology-chat",
+      "blurb": "Connect your Synology NAS Chat to Trinity with full agent capabilities.",
+      "order": 90
+    },
+    "install": {
+      "npmSpec": "@Trinity/synology-chat",
+      "localPath": "extensions/synology-chat",
+      "defaultChoice": "npm"
+    }
+  }
+}
+

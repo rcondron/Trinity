@@ -1,0 +1,25 @@
+{
+  "name": "Trinity-Serenity",
+  "version": "1.0.0",
+  "description": "Serenity Self-Improvement Engine for automatic skill creation and usage tracking",
+  "main": "index.ts",
+  "type": "module",
+  "dependencies": {
+    "@sinclair/typebox": "^0.33.0"
+  },
+  "peerDependencies": {
+    "Trinity": "*"
+  },
+  "keywords": [
+    "Trinity",
+    "Serenity",
+    "self-improvement",
+    "skill-creation",
+    "tool-tracking",
+    "pattern-detection",
+    "insights"
+  ],
+  "author": "Trinity-Agent",
+  "license": "MIT"
+}
+

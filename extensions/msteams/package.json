@@ -1,0 +1,36 @@
+{
+  "name": "@Trinity/msteams",
+  "version": "2026.2.22",
+  "description": "Trinity Microsoft Teams channel plugin",
+  "type": "module",
+  "dependencies": {
+    "@microsoft/agents-hosting": "^1.3.1",
+    "express": "^5.2.1"
+  },
+  "devDependencies": {
+    "Trinity": "workspace:*"
+  },
+  "Trinity": {
+    "extensions": [
+      "./index.ts"
+    ],
+    "channel": {
+      "id": "msteams",
+      "label": "Microsoft Teams",
+      "selectionLabel": "Microsoft Teams (Bot Framework)",
+      "docsPath": "/channels/msteams",
+      "docsLabel": "msteams",
+      "blurb": "Bot Framework; enterprise support.",
+      "aliases": [
+        "teams"
+      ],
+      "order": 60
+    },
+    "install": {
+      "npmSpec": "@Trinity/msteams",
+      "localPath": "extensions/msteams",
+      "defaultChoice": "npm"
+    }
+  }
+}
+

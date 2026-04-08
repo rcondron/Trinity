@@ -1,0 +1,35 @@
+export const browserCoreExamples = [
+  "Trinity browser status",
+  "Trinity browser start",
+  "Trinity browser stop",
+  "Trinity browser tabs",
+  "Trinity browser open https://example.com",
+  "Trinity browser focus abcd1234",
+  "Trinity browser close abcd1234",
+  "Trinity browser screenshot",
+  "Trinity browser screenshot --full-page",
+  "Trinity browser screenshot --ref 12",
+  "Trinity browser snapshot",
+  "Trinity browser snapshot --format aria --limit 200",
+  "Trinity browser snapshot --efficient",
+  "Trinity browser snapshot --labels",
+];
+
+export const browserActionExamples = [
+  "Trinity browser navigate https://example.com",
+  "Trinity browser resize 1280 720",
+  "Trinity browser click 12 --double",
+  'Trinity browser type 23 "hello" --submit',
+  "Trinity browser press Enter",
+  "Trinity browser hover 44",
+  "Trinity browser drag 10 11",
+  "Trinity browser select 9 OptionA OptionB",
+  "Trinity browser upload /tmp/Trinity/uploads/file.pdf",
+  'Trinity browser fill --fields \'[{"ref":"1","value":"Ada"}]\'',
+  "Trinity browser dialog --accept",
+  'Trinity browser wait --text "Done"',
+  "Trinity browser evaluate --fn '(el) => el.textContent' --ref 7",
+  "Trinity browser console --level error",
+  "Trinity browser pdf",
+];
+

@@ -1,0 +1,36 @@
+{
+  "name": "@Trinity/zalo",
+  "version": "2026.2.22",
+  "description": "Trinity Zalo channel plugin",
+  "type": "module",
+  "dependencies": {
+    "undici": "7.22.0"
+  },
+  "devDependencies": {
+    "Trinity": "workspace:*"
+  },
+  "Trinity": {
+    "extensions": [
+      "./index.ts"
+    ],
+    "channel": {
+      "id": "zalo",
+      "label": "Zalo",
+      "selectionLabel": "Zalo (Bot API)",
+      "docsPath": "/channels/zalo",
+      "docsLabel": "zalo",
+      "blurb": "Vietnam-focused messaging platform with Bot API.",
+      "aliases": [
+        "zl"
+      ],
+      "order": 80,
+      "quickstartAllowFrom": true
+    },
+    "install": {
+      "npmSpec": "@Trinity/zalo",
+      "localPath": "extensions/zalo",
+      "defaultChoice": "npm"
+    }
+  }
+}
+

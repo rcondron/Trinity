@@ -1,0 +1,20 @@
+import type { TrinityPluginApi } from "Trinity/plugin-sdk";
+import { emptyPluginConfigSchema } from "Trinity/plugin-sdk";
+import { googlechatDock, googlechatPlugin } from "./src/channel.js";
+import { handleGoogleChatWebhookRequest } from "./src/monitor.js";
+import { setGoogleChatRuntime } from "./src/runtime.js";
+
+const plugin = {
+  id: "googlechat",
+  name: "Google Chat",
+  description: "Trinity Google Chat channel plugin",
+  configSchema: emptyPluginConfigSchema(),
+  register(api: TrinityPluginApi) {
+    setGoogleChatRuntime(api.runtime);
+    api.registerChannel({ plugin: googlechatPlugin, dock: googlechatDock });
+    api.registerHttpHandler(handleGoogleChatWebhookRequest);
+  },
+};
+
+export default plugin;
+

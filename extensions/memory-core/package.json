@@ -1,0 +1,19 @@
+{
+  "name": "@Trinity/memory-core",
+  "version": "2026.2.22",
+  "private": true,
+  "description": "Trinity core memory search plugin",
+  "type": "module",
+  "devDependencies": {
+    "Trinity": "workspace:*"
+  },
+  "peerDependencies": {
+    "Trinity": ">=2026.1.26"
+  },
+  "Trinity": {
+    "extensions": [
+      "./index.ts"
+    ]
+  }
+}
+

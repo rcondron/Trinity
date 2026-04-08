@@ -1,0 +1,81 @@
+import fs from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
+import { describe, expect, it } from "vitest";
+import { createConfigIO } from "./io.js";
+
+async function withTempHome(run: (home: string) => Promise<void>): Promise<void> {
+  const home = await fs.mkdtemp(path.join(os.tmpdir(), "Trinity-config-"));
+  try {
+    await run(home);
+  } finally {
+    await fs.rm(home, { recursive: true, force: true });
+  }
+}
+
+async function writeConfig(
+  home: string,
+  dirname: ".Trinity",
+  port: number,
+  filename: string = "Trinity.json",
+) {
+  const dir = path.join(home, dirname);
+  await fs.mkdir(dir, { recursive: true });
+  const configPath = path.join(dir, filename);
+  await fs.writeFile(configPath, JSON.stringify({ gateway: { port } }, null, 2));
+  return configPath;
+}
+
+function createIoForHome(home: string, env: NodeJS.ProcessEnv = {} as NodeJS.ProcessEnv) {
+  return createConfigIO({
+    env,
+    homedir: () => home,
+  });
+}
+
+describe("config io paths", () => {
+  it("uses ~/.Trinity/Trinity.json when config exists", async () => {
+    await withTempHome(async (home) => {
+      const configPath = await writeConfig(home, ".Trinity", 19001);
+      const io = createIoForHome(home);
+      expect(io.configPath).toBe(configPath);
+      expect(io.loadConfig().gateway?.port).toBe(19001);
+    });
+  });
+
+  it("defaults to ~/.Trinity/Trinity.json when config is missing", async () => {
+    await withTempHome(async (home) => {
+      const io = createIoForHome(home);
+      expect(io.configPath).toBe(path.join(home, ".Trinity", "Trinity.json"));
+    });
+  });
+
+  it("uses Trinity_HOME for default config path", async () => {
+    await withTempHome(async (home) => {
+      const io = createConfigIO({
+        env: { Trinity_HOME: path.join(home, "svc-home") } as NodeJS.ProcessEnv,
+        homedir: () => path.join(home, "ignored-home"),
+      });
+      expect(io.configPath).toBe(path.join(home, "svc-home", ".Trinity", "Trinity.json"));
+    });
+  });
+
+  it("honors explicit Trinity_CONFIG_PATH override", async () => {
+    await withTempHome(async (home) => {
+      const customPath = await writeConfig(home, ".Trinity", 20002, "custom.json");
+      const io = createIoForHome(home, { Trinity_CONFIG_PATH: customPath } as NodeJS.ProcessEnv);
+      expect(io.configPath).toBe(customPath);
+      expect(io.loadConfig().gateway?.port).toBe(20002);
+    });
+  });
+
+  it("honors legacy CLAWDBOT_CONFIG_PATH override", async () => {
+    await withTempHome(async (home) => {
+      const customPath = await writeConfig(home, ".Trinity", 20003, "legacy-custom.json");
+      const io = createIoForHome(home, { CLAWDBOT_CONFIG_PATH: customPath } as NodeJS.ProcessEnv);
+      expect(io.configPath).toBe(customPath);
+      expect(io.loadConfig().gateway?.port).toBe(20003);
+    });
+  });
+});
+

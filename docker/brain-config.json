@@ -1,0 +1,26 @@
+{
+  "default_collection": "memories",
+  "embedding": {
+    "model": "nomic-embed-text",
+    "dimension": 768
+  },
+  "ner": {
+    "model": "qwen2.5:7b",
+    "extraction_url": "http://ollama:11434",
+    "enabled": true
+  },
+  "neo4j": {
+    "max_entities_per_memory": 50,
+    "relationship_threshold": 0.7
+  },
+  "search": {
+    "default_limit": 5,
+    "min_score": 0.5,
+    "rerank_enabled": true
+  },
+  "compression": {
+    "enabled": true,
+    "schedule": "0 3 * * 0",
+    "significance_threshold": 0.3
+  }
+}

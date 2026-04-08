@@ -1,0 +1,13 @@
+{
+  "name": "@Trinity/llm-task",
+  "version": "2026.2.22",
+  "private": true,
+  "description": "Trinity JSON-only LLM task plugin",
+  "type": "module",
+  "Trinity": {
+    "extensions": [
+      "./index.ts"
+    ]
+  }
+}
+

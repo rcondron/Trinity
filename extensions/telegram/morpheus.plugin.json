@@ -1,0 +1,10 @@
+{
+  "id": "telegram",
+  "channels": ["telegram"],
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {}
+  }
+}
+

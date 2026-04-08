@@ -1,0 +1,16 @@
+{
+  "name": "@Trinity/minimax-portal-auth",
+  "version": "2026.2.22",
+  "private": true,
+  "description": "Trinity MiniMax Portal OAuth provider plugin",
+  "type": "module",
+  "devDependencies": {
+    "Trinity": "workspace:*"
+  },
+  "Trinity": {
+    "extensions": [
+      "./index.ts"
+    ]
+  }
+}
+
