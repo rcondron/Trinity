@@ -1,6 +1,6 @@
 import type { BrowserFormField } from "../client-actions-core.js";
 import type { BrowserRouteContext } from "../server-context.js";
-import { createTabhrClient } from "../tabhr-client.js";
+import { createBrowserExtClient } from "../browser-ext-client.js";
 import {
   type ActKind,
   isActKind,
@@ -72,35 +72,35 @@ export function registerBrowserAgentActRoutes(
       targetId,
       run: async ({ profileCtx, tab, cdpUrl }) => {
         if (profileCtx.profile.driver === "extension") {
-          const tabhr = createTabhrClient(cdpUrl);
+          const extClient = createBrowserExtClient(cdpUrl);
           switch (kind) {
             case "click": {
               const x = toNumber(body.x) ?? 0;
               const y = toNumber(body.y) ?? 0;
-              await tabhr.click(x, y, 8000);
+              await extClient.click(x, y, 8000);
               return res.json({ ok: true, targetId: tab.targetId, url: tab.url });
             }
             case "type": {
               const text = typeof body.text === "string" ? body.text : "";
-              await tabhr.type(text, 8000);
+              await extClient.type(text, 8000);
               return res.json({ ok: true, targetId: tab.targetId });
             }
             case "press": {
               const key = toStringOrEmpty(body.key) || "Enter";
-              await tabhr.keypress(key, 8000);
+              await extClient.keypress(key, 8000);
               return res.json({ ok: true, targetId: tab.targetId });
             }
             case "scrollIntoView": {
               const deltaX = toNumber(body.deltaX) ?? 0;
               const deltaY = toNumber(body.deltaY) ?? toNumber(body.y) ?? 300;
-              await tabhr.scroll(deltaX, deltaY, 8000);
+              await extClient.scroll(deltaX, deltaY, 8000);
               return res.json({ ok: true, targetId: tab.targetId });
             }
             default:
               return jsonError(
                 res,
                 501,
-                `TabHR extension does not support act kind "${kind}". Supported: click (x,y), type, press, scrollIntoView.`,
+                `Browser extension does not support act kind "${kind}". Supported: click (x,y), type, press, scrollIntoView.`,
               );
           }
         }

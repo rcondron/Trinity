@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Trinity — Skills</title>
+  <link rel="stylesheet" href="../css/style.css" />
+</head>
+<body class="matrix-bg">
+  <canvas id="matrix-rain"></canvas>
+
+  <header class="top-bar">
+    <div class="brand">
+      <div class="logo-ring"></div>
+      <div class="brand-text">
+        <h1>TRINITY</h1>
+        <p>Skills · Learned by the Agent, Stored in Trinity Brain</p>
+      </div>
+    </div>
+    <nav class="top-nav">
+      <a href="../StartHere.html">Start Here</a>
+      <a href="dashboard.html">Dashboard</a>
+      <a href="chat.html">Chat</a>
+      <a href="skills.html" class="active">Skills</a>
+      <a href="access-control.html">Access Control</a>
+    </nav>
+  </header>
+
+  <main class="page">
+    <h2>Skills</h2>
+    <p class="lead">
+      Trinity's skills live in the <b>trinity-brain</b> container, not on disk. The agent grows
+      its skill library as it learns — every successful use nudges a skill's significance up,
+      every failure nudges it down, and new skills can be <em>evolved</em> from old ones.
+    </p>
+
+    <div class="callout info">
+      <strong>No bundled skills folder.</strong> There is no <code>skills/</code> directory on
+      the host. The brain is the single source of truth so the agent's knowledge can update
+      itself without the webapp or host filesystem getting in the way.
+    </div>
+
+    <!-- Stats -->
+    <div class="dashboard-grid">
+      <div class="card">
+        <h3>Total skills</h3>
+        <div class="big-stat" id="stat-total">—</div>
+        <div class="sub">stored in trinity-brain</div>
+      </div>
+      <div class="card">
+        <h3>Auto-created</h3>
+        <div class="big-stat" id="stat-auto">—</div>
+        <div class="sub">learned by the agent</div>
+      </div>
+      <div class="card">
+        <h3>Custom</h3>
+        <div class="big-stat" id="stat-custom">—</div>
+        <div class="sub">added by you</div>
+      </div>
+      <div class="card">
+        <h3>Top performer</h3>
+        <div class="big-stat" id="stat-top" style="font-size:16px;">—</div>
+        <div class="sub" id="stat-top-sub">highest success count</div>
+      </div>
+    </div>
+
+    <!-- Search / recall -->
+    <h3 style="margin-top:28px; color:var(--accent-2);">Recall skills</h3>
+    <p class="sub">Semantic search across the agent's skill library (via trinity-brain's vector index).</p>
+    <form class="add-perm-form" onsubmit="return Skills.recall(event)" style="grid-template-columns: 1fr 140px auto;">
+      <input type="text" id="recall-q" placeholder="e.g. send an email, parse JSON, open a browser" required />
+      <input type="number" id="recall-k" value="10" min="1" max="50" />
+      <button type="submit" class="btn primary">Recall</button>
+    </form>
+    <div id="recall-results" class="perm-list"></div>
+
+    <!-- Manual add -->
+    <h3 style="margin-top:28px; color:var(--accent-2);">Teach Trinity a new skill</h3>
+    <p class="sub">Skills added here go straight into the brain as <code>source=custom</code>. The agent will
+       recall them semantically next time it needs them.</p>
+    <form class="config-form" onsubmit="return Skills.add(event)">
+      <label>
+        Skill name
+        <input type="text" id="s-name" placeholder="e.g. Summarise a PDF" required />
+      </label>
+      <label>
+        Short description
+        <input type="text" id="s-desc" placeholder="One-sentence description" required />
+      </label>
+      <label>
+        Domains (comma-separated)
+        <input type="text" id="s-domains" placeholder="email, filesystem, web" />
+      </label>
+      <label>
+        Triggers (comma-separated)
+        <input type="text" id="s-triggers" placeholder="summarise, pdf, extract" />
+      </label>
+      <label>
+        Content (markdown / instructions for the agent)
+        <textarea id="s-content" rows="8" style="resize:vertical;padding:10px 12px;background:#020608;color:var(--text);border:1px solid var(--border);border-radius:6px;font-family:var(--mono);font-size:13px;" placeholder="Step-by-step instructions, examples, references…"></textarea>
+      </label>
+      <div class="actions" style="justify-content:flex-start;">
+        <button type="submit" class="btn primary">+ Add skill</button>
+      </div>
+    </form>
+  </main>
+
+  <footer class="bottom-bar">
+    <span>Trinity · Morpheus Network · MIT License</span>
+    <span id="bridge-indicator" class="status-pill">Bridge: checking…</span>
+  </footer>
+
+  <script src="../js/matrix-rain.js"></script>
+  <script src="../js/bridge-client.js"></script>
+  <script src="../js/skills.js"></script>
+</body>
+</html>

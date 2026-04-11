@@ -25,6 +25,7 @@ const crypto = require("crypto");
 
 const security = require("./security");
 const TrinityClient = require("./trinity-client");
+const BrainClient = require("./brain-client");
 
 // ---- Configuration ---------------------------------------------------------
 
@@ -38,6 +39,7 @@ const DEFAULTS = {
   host: "127.0.0.1",           // loopback-only by design
   port: 4711,
   trinityContainerUrl: process.env.TRINITY_CONTAINER_URL || "http://127.0.0.1:18789",
+  brainContainerUrl:   process.env.TRINITY_BRAIN_URL     || "http://127.0.0.1:8100",
   allowedOrigins: [
     "http://127.0.0.1",
     "http://localhost",
@@ -133,7 +135,7 @@ function originAllowed(origin, cfg) {
 
 // ---- Request router --------------------------------------------------------
 
-function createServer(cfg, token, trinity) {
+function createServer(cfg, token, trinity, brain) {
   const perms = security.loadPermissions(PERM_FILE);
 
   const routes = [];
@@ -262,6 +264,77 @@ function createServer(cfg, token, trinity) {
     return { log: auditRing.slice(-limit) };
   });
 
+  // ---- Skills (relayed to trinity-brain) ------------------------------------
+  // All skills live in the trinity-brain container. There is no bundled skills
+  // folder on the host — the brain is the single source of truth, and the
+  // agent updates its own skills as it learns. These bridge routes are thin
+  // relays that also write to the audit log.
+
+  route("GET", "/skills/status", async (req) => {
+    requireAuth(req);
+    try { return await brain.skillsStatus(); }
+    catch (e) { audit("skill.status.fail", { err: e.message }); throw e; }
+  });
+
+  route("POST", "/skills/recall", async (req) => {
+    requireAuth(req);
+    const body = await readBody(req) || {};
+    if (!body.query) { const e = new Error("query required"); e.status = 400; throw e; }
+    audit("skill.recall", { query: String(body.query).slice(0, 80) });
+    return brain.recallSkills(body);
+  });
+
+  // Called by the webapp (user-authored) or by the Trinity agent itself
+  // (container → bridge → brain) when it figures out a new way to do something.
+  // Source defaults to "auto-created" to distinguish learned skills from the
+  // ones a human typed in the UI.
+  route("POST", "/skills/learn", async (req) => {
+    requireAuth(req);
+    const body = await readBody(req) || {};
+    if (!body.name || !body.content) {
+      const e = new Error("name and content required"); e.status = 400; throw e;
+    }
+    const skill = { ...body, source: body.source || "auto-created" };
+    audit("skill.learn", { name: skill.name, source: skill.source });
+    return brain.ingestSkill(skill);
+  });
+
+  // Manually add a skill (from the webapp UI). Same as /learn but source=custom.
+  route("POST", "/skills", async (req) => {
+    requireAuth(req);
+    const body = await readBody(req) || {};
+    if (!body.name || !body.content) {
+      const e = new Error("name and content required"); e.status = 400; throw e;
+    }
+    const skill = { ...body, source: "custom" };
+    audit("skill.add", { name: skill.name });
+    return brain.ingestSkill(skill);
+  });
+
+  // Agent feedback loop: tell the brain whether a skill helped or hurt so
+  // significance drifts up or down over time. This is how the agent's skill
+  // library self-improves.
+  route("POST", "/skills/:id/success", async (req, url, params) => {
+    requireAuth(req);
+    audit("skill.success", { id: params.id });
+    return brain.markSuccess(params.id);
+  });
+
+  route("POST", "/skills/:id/fail", async (req, url, params) => {
+    requireAuth(req);
+    audit("skill.fail", { id: params.id });
+    return brain.markFailure(params.id);
+  });
+
+  // Evolve a skill into a newer version. The old version stays in the brain,
+  // linked via evolved_from, so we never lose the learning history.
+  route("POST", "/skills/:id/evolve", async (req, url, params) => {
+    requireAuth(req);
+    const body = await readBody(req) || {};
+    audit("skill.evolve", { id: params.id, name: body.name });
+    return brain.evolveSkill(params.id, body);
+  });
+
   // ---- Agent config ----
   route("GET", "/config", async (req) => {
     requireAuth(req);
@@ -354,8 +427,9 @@ function main() {
   const cfg = loadConfig();
   const token = loadOrCreateToken();
   const trinity = new TrinityClient(cfg.trinityContainerUrl);
+  const brain   = new BrainClient(cfg.brainContainerUrl);
 
-  const server = createServer(cfg, token, trinity);
+  const server = createServer(cfg, token, trinity, brain);
   server.listen(cfg.port, cfg.host, () => {
     const banner = [
       "",
@@ -366,6 +440,7 @@ function main() {
       "",
       `  Listening   : http://${cfg.host}:${cfg.port}`,
       `  Agent URL   : ${cfg.trinityContainerUrl}`,
+      `  Brain URL   : ${cfg.brainContainerUrl}`,
       `  Config dir  : ${CONFIG_DIR}`,
       "",
       `  Pairing token: ${token}`,

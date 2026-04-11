@@ -38,7 +38,7 @@ async function resolveUiFiles(cwd: string, candidates: string[]): Promise<string
       await fs.access(path.join(cwd, relPath));
       matches.push(relPath);
     } catch {
-      // ignore missing path (e.g. TabHR Docker fork without ui/)
+      // ignore missing path (Docker-only deploy without ui/)
     }
   }
   return matches;
@@ -54,7 +54,7 @@ async function resolveSwiftFiles(cwd: string, candidates: string[]): Promise<str
       await fs.access(path.join(cwd, relPath));
       matches.push(relPath);
     } catch {
-      // ignore missing path (e.g. TabHR Docker fork without macOS app)
+      // ignore missing path (Docker-only deploy without macOS app)
     }
   }
   return matches;
@@ -99,7 +99,7 @@ describe("cron protocol conformance", () => {
       expect(uiTypes.includes("jobs:")).toBe(true);
       expect(uiTypes.includes("jobCount")).toBe(false);
     } catch {
-      // Skip when ui/ is not present (e.g. TabHR Docker fork)
+      // Skip when ui/ is not present
     }
 
     const swiftFiles = await resolveSwiftFiles(cwd, SWIFT_STATUS_CANDIDATES);

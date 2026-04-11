@@ -4,7 +4,7 @@ import {
   deriveDefaultBrowserCdpPortRange,
   deriveDefaultBrowserControlPort,
   DEFAULT_BROWSER_CONTROL_PORT,
-  TABHR_CDP_PORT,
+  BROWSER_EXT_PORT,
 } from "../config/port-defaults.js";
 import { isLoopbackHost } from "../gateway/net.js";
 import type { SsrFPolicy } from "../infra/net/ssrf.js";
@@ -140,8 +140,8 @@ function ensureDefaultProfile(
 }
 
 /**
- * Ensure a built-in "chrome" profile exists for the TabHR browser extension.
- * TabHR exposes CDP directly on port 9220 (no relay).
+ * Ensure a built-in "chrome" profile exists for the browser extension.
+ * The extension exposes its JSON envelope API directly on port 9220 (no relay).
  */
 function ensureDefaultChromeExtensionProfile(
   profiles: Record<string, BrowserProfileConfig>,
@@ -151,15 +151,15 @@ function ensureDefaultChromeExtensionProfile(
   if (result.chrome) {
     return result;
   }
-  if (!Number.isFinite(TABHR_CDP_PORT) || TABHR_CDP_PORT <= 0 || TABHR_CDP_PORT > 65535) {
+  if (!Number.isFinite(BROWSER_EXT_PORT) || BROWSER_EXT_PORT <= 0 || BROWSER_EXT_PORT > 65535) {
     return result;
   }
-  if (getUsedPorts(result).has(TABHR_CDP_PORT)) {
+  if (getUsedPorts(result).has(BROWSER_EXT_PORT)) {
     return result;
   }
   result.chrome = {
     driver: "extension",
-    cdpUrl: `http://127.0.0.1:${TABHR_CDP_PORT}`,
+    cdpUrl: `http://127.0.0.1:${BROWSER_EXT_PORT}`,
     color: "#00AA00",
   };
   return result;

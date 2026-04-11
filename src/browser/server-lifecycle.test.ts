@@ -25,7 +25,7 @@ describe("ensureExtensionRelayForProfiles", () => {
     resolveProfileMock.mockReset();
   });
 
-  it("does not start relay (TabHR uses direct CDP on port 9220)", async () => {
+  it("does not start relay (extension uses direct port 9220)", async () => {
     resolveProfileMock.mockImplementation((_resolved: unknown, name: string) => {
       if (name === "chrome") {
         return { driver: "extension", cdpUrl: "http://127.0.0.1:9220" };
@@ -43,7 +43,7 @@ describe("ensureExtensionRelayForProfiles", () => {
       onWarn: vi.fn(),
     });
 
-    // TabHR: no relay started; extension profile uses direct CDP.
+    // No relay started; extension profile uses the direct port.
     expect(resolveProfileMock).toHaveBeenCalled();
   });
 });

@@ -125,7 +125,7 @@ describe("browser config", () => {
     expect(() => resolveBrowserConfig({ cdpUrl: "ws://127.0.0.1:18791" })).toThrow(/must be http/i);
   });
 
-  it("does not add the built-in chrome (TabHR) profile if port 9220 is already used", () => {
+  it("does not add the built-in chrome (browser extension) profile if port 9220 is already used", () => {
     const resolved = resolveBrowserConfig({
       profiles: {
         Trinity: { cdpPort: 9220, color: "#FF4500" },

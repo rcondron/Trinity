@@ -29,7 +29,6 @@
                   "dist/",
                   "docs/",
                   "extensions/",
-                  "skills/",
                   "docker-compose.yml",
                   "docker/",
                   "brain-api/"

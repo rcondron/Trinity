@@ -101,6 +101,17 @@
     startAgent()         { return this._request("POST", "/agent/start"); }
     stopAgent()          { return this._request("POST", "/agent/stop"); }
     restartAgent()       { return this._request("POST", "/agent/restart"); }
+
+    // ---- Skills (relayed to trinity-brain) ----
+    // All skills live in the trinity-brain container. There is no bundled
+    // on-disk skill folder; the agent learns and updates them over time.
+    skillsStatus()            { return this._request("GET",  "/skills/status"); }
+    recallSkills(body)        { return this._request("POST", "/skills/recall", body); }
+    addSkill(skill)           { return this._request("POST", "/skills",         skill); }
+    learnSkill(skill)         { return this._request("POST", "/skills/learn",   skill); }
+    markSkillSuccess(id)      { return this._request("POST", "/skills/" + id + "/success"); }
+    markSkillFailure(id)      { return this._request("POST", "/skills/" + id + "/fail"); }
+    evolveSkill(id, skill)    { return this._request("POST", "/skills/" + id + "/evolve", skill); }
   }
 
   global.Bridge = new BridgeClient();

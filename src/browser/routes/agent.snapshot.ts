@@ -15,7 +15,7 @@ import {
   DEFAULT_BROWSER_SCREENSHOT_MAX_SIDE,
   normalizeBrowserScreenshot,
 } from "../screenshot.js";
-import { createTabhrClient } from "../tabhr-client.js";
+import { createBrowserExtClient } from "../browser-ext-client.js";
 import type { BrowserRouteContext } from "../server-context.js";
 import {
   getPwAiModule,
@@ -74,8 +74,8 @@ export function registerBrowserAgentSnapshotRoutes(
             url,
             ...withBrowserNavigationPolicy(ctx.state().resolved.ssrfPolicy),
           });
-          const tabhr = createTabhrClient(cdpUrl);
-          const data = await tabhr.navigate(url, 8000);
+          const extClient = createBrowserExtClient(cdpUrl);
+          const data = await extClient.navigate(url, 8000);
           return res.json({
             ok: true,
             targetId: tab.targetId,
@@ -145,13 +145,13 @@ export function registerBrowserAgentSnapshotRoutes(
         let buffer: Buffer;
         if (profileCtx.profile.driver === "extension") {
           if (fullPage || ref || element) {
-            return jsonError(res, 400, "TabHR screenshot does not support fullPage, ref, or element");
+            return jsonError(res, 400, "Browser extension screenshot does not support fullPage, ref, or element");
           }
-          const tabhr = createTabhrClient(cdpUrl);
-          const { data: dataUrl } = await tabhr.screenshot(8000);
+          const extClient = createBrowserExtClient(cdpUrl);
+          const { data: dataUrl } = await extClient.screenshot(8000);
           const match = /^data:([^;]+);base64,(.+)$/.exec(dataUrl ?? "");
           if (!match) {
-            return jsonError(res, 502, "TabHR screenshot returned invalid data URL");
+            return jsonError(res, 502, "Browser extension screenshot returned invalid data URL");
           }
           buffer = Buffer.from(match[2] ?? "", "base64");
         } else if (!tab.wsUrl || Boolean(ref) || Boolean(element)) {
@@ -242,9 +242,9 @@ export function registerBrowserAgentSnapshotRoutes(
         return jsonError(res, 400, "labels/mode=efficient require format=ai");
       }
       if (profileCtx.profile.driver === "extension") {
-        const tabhr = createTabhrClient(profileCtx.profile.cdpUrl);
-        const statusData = await tabhr.status(5000);
-        const evalResult = await tabhr
+        const extClient = createBrowserExtClient(profileCtx.profile.cdpUrl);
+        const statusData = await extClient.status(5000);
+        const evalResult = await extClient
           .evaluate("document.body?.innerText ?? document.documentElement?.innerText ?? ''", {}, 5000)
           .catch(() => ({ result: "" }));
         const text = typeof evalResult.result === "string" ? evalResult.result : "";
