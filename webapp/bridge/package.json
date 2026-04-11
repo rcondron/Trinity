@@ -1,0 +1,19 @@
+{
+  "name": "trinity-bridge",
+  "version": "0.1.0",
+  "description": "Host-side security gateway between the Trinity webapp/container and the user's computer.",
+  "main": "bridge-server.js",
+  "type": "commonjs",
+  "bin": {
+    "trinity-bridge": "./bridge-server.js"
+  },
+  "scripts": {
+    "start": "node bridge-server.js",
+    "daemon": "node bridge-server.js --daemon"
+  },
+  "dependencies": {},
+  "engines": {
+    "node": ">=20"
+  },
+  "license": "MIT"
+}

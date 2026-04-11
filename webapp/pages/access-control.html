@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Trinity — Access Control</title>
+  <link rel="stylesheet" href="../css/style.css" />
+</head>
+<body class="matrix-bg">
+  <canvas id="matrix-rain"></canvas>
+
+  <header class="top-bar">
+    <div class="brand">
+      <div class="logo-ring"></div>
+      <div class="brand-text">
+        <h1>TRINITY</h1>
+        <p>Access Control · Host Resource Permissions</p>
+      </div>
+    </div>
+    <nav class="top-nav">
+      <a href="../StartHere.html">Start Here</a>
+      <a href="dashboard.html">Dashboard</a>
+      <a href="chat.html">Chat</a>
+      <a href="access-control.html" class="active">Access Control</a>
+    </nav>
+  </header>
+
+  <main class="page">
+    <h2>Access Control</h2>
+    <p class="lead">
+      Grant the Trinity container selective access to parts of your computer. Every entry below
+      is an allow-list rule enforced by the Bridge. The container cannot touch any host resource
+      that is not explicitly listed here.
+    </p>
+
+    <div class="callout warn">
+      <strong>Principle of least privilege.</strong> Start with <em>read-only</em> access to the
+      smallest folder the agent needs. Promote to <em>read-write</em> only when you're sure.
+    </div>
+
+    <h3 style="color:var(--accent-2);">Grant new access</h3>
+    <form class="add-perm-form" onsubmit="return Access.add(event)">
+      <input type="text"   id="p-name" placeholder="Name (e.g. Project folder)" required />
+      <input type="text"   id="p-path" placeholder="/absolute/path/to/resource" required />
+      <select id="p-mode">
+        <option value="ro">read-only (ro)</option>
+        <option value="rw">read-write (rw)</option>
+      </select>
+      <button type="submit" class="btn primary">+ Add</button>
+    </form>
+
+    <h3 style="margin-top:28px; color:var(--accent-2);">Current permissions</h3>
+    <div class="perm-list" id="perm-list">
+      <div class="sub">loading…</div>
+    </div>
+
+    <h3 style="margin-top:28px; color:var(--accent-2);">Quick presets</h3>
+    <div class="actions" style="justify-content:flex-start;">
+      <button class="btn ghost" onclick="Access.addPreset('workspace')">+ ./workspace (rw)</button>
+      <button class="btn ghost" onclick="Access.addPreset('docs')">+ ./docs (ro)</button>
+      <button class="btn ghost" onclick="Access.addPreset('downloads')">+ ~/Downloads (ro)</button>
+    </div>
+  </main>
+
+  <footer class="bottom-bar">
+    <span>Trinity · Morpheus Network · MIT License</span>
+    <span id="bridge-indicator" class="status-pill">Bridge: checking…</span>
+  </footer>
+
+  <script src="../js/matrix-rain.js"></script>
+  <script src="../js/bridge-client.js"></script>
+  <script src="../js/access-control.js"></script>
+</body>
+</html>

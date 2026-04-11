@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Trinity — Start Here</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body class="matrix-bg">
+  <canvas id="matrix-rain"></canvas>
+
+  <header class="top-bar">
+    <div class="brand">
+      <div class="logo-ring"></div>
+      <div class="brand-text">
+        <h1>TRINITY</h1>
+        <p>Decentralized Open-Source AI Agent &nbsp;·&nbsp; by Morpheus</p>
+      </div>
+    </div>
+    <nav class="top-nav">
+      <a href="StartHere.html" class="active">Start Here</a>
+      <a href="pages/dashboard.html">Dashboard</a>
+      <a href="pages/chat.html">Chat</a>
+      <a href="pages/access-control.html">Access Control</a>
+    </nav>
+  </header>
+
+  <main class="onboarding">
+    <!-- Progress bar -->
+    <div class="stepper" id="stepper">
+      <div class="step active" data-step="1"><span>1</span><label>Welcome</label></div>
+      <div class="step" data-step="2"><span>2</span><label>Requirements</label></div>
+      <div class="step" data-step="3"><span>3</span><label>Install Docker</label></div>
+      <div class="step" data-step="4"><span>4</span><label>Trinity Containers</label></div>
+      <div class="step" data-step="5"><span>5</span><label>Bridge Setup</label></div>
+      <div class="step" data-step="6"><span>6</span><label>Agent Config</label></div>
+      <div class="step" data-step="7"><span>7</span><label>Launch</label></div>
+    </div>
+
+    <!-- STEP 1: Welcome -->
+    <section class="step-panel active" data-panel="1">
+      <h2>Welcome to Trinity</h2>
+      <p class="lead">
+        Trinity is a decentralized, open-source AI agent for the
+        <a href="https://mor.org" target="_blank" rel="noreferrer">Morpheus Network</a>.
+        This onboarding wizard will walk you through:
+      </p>
+      <ul class="feature-list">
+        <li><strong>Installing Docker</strong> &mdash; the runtime for every Trinity service.</li>
+        <li><strong>Spinning up the Trinity container</strong> &mdash; the sandboxed agent process.</li>
+        <li><strong>Spinning up the Trinity Brain container</strong> &mdash; memory, vectors, graph.</li>
+        <li><strong>Installing the Bridge</strong> &mdash; the host-side gatekeeper that guards access to your computer.</li>
+        <li><strong>Configuring the agent</strong> &mdash; API keys, permissions, the first hello.</li>
+      </ul>
+      <div class="callout info">
+        <strong>Architecture.</strong> The Trinity agent lives in an isolated Docker container and
+        <em>cannot touch your computer directly</em>. Every request to read a file, run a shell
+        command, or reach a device flows through the <strong>Bridge</strong>, which runs on your host and
+        enforces the permissions you configure here.
+      </div>
+      <div class="actions">
+        <button class="btn primary" onclick="Onboarding.next()">Get Started →</button>
+      </div>
+    </section>
+
+    <!-- STEP 2: Requirements -->
+    <section class="step-panel" data-panel="2">
+      <h2>System Requirements</h2>
+      <p class="lead">Before we begin, make sure your host satisfies the following:</p>
+      <div class="req-grid">
+        <div class="req-card">
+          <h3>OS</h3>
+          <p>Windows 10/11, macOS 12+, or Linux (kernel 5.10+)</p>
+        </div>
+        <div class="req-card">
+          <h3>CPU</h3>
+          <p>4+ cores (8+ recommended for local LLMs)</p>
+        </div>
+        <div class="req-card">
+          <h3>Memory</h3>
+          <p>16&nbsp;GB RAM minimum · 32&nbsp;GB recommended</p>
+        </div>
+        <div class="req-card">
+          <h3>Disk</h3>
+          <p>40&nbsp;GB free (models + vector/graph stores)</p>
+        </div>
+        <div class="req-card">
+          <h3>Node.js</h3>
+          <p>v20+ on the host (needed by the Bridge)</p>
+        </div>
+        <div class="req-card">
+          <h3>Network</h3>
+          <p>Outbound HTTPS for pulling images &amp; model weights</p>
+        </div>
+      </div>
+      <div class="actions">
+        <button class="btn ghost" onclick="Onboarding.prev()">← Back</button>
+        <button class="btn primary" onclick="Onboarding.next()">I meet the requirements →</button>
+      </div>
+    </section>
+
+    <!-- STEP 3: Install Docker -->
+    <section class="step-panel" data-panel="3">
+      <h2>Install Docker</h2>
+      <p class="lead">
+        Trinity runs as a set of Docker containers. Pick your platform for a copy-paste
+        install script, or install Docker Desktop manually.
+      </p>
+
+      <div class="tabs" role="tablist">
+        <button class="tab active" data-tab="tab-linux">Linux</button>
+        <button class="tab" data-tab="tab-mac">macOS</button>
+        <button class="tab" data-tab="tab-win">Windows</button>
+      </div>
+
+      <div class="tab-panel active" id="tab-linux">
+        <pre><code># Install Docker Engine + Compose (Ubuntu/Debian)
+curl -fsSL https://get.docker.com | sh
+sudo usermod -aG docker $USER
+# re-login, then verify:
+docker --version
+docker compose version</code></pre>
+      </div>
+      <div class="tab-panel" id="tab-mac">
+        <pre><code># Install Docker Desktop (Homebrew)
+brew install --cask docker
+open -a Docker
+# Wait for whale icon, then verify:
+docker --version
+docker compose version</code></pre>
+      </div>
+      <div class="tab-panel" id="tab-win">
+        <pre><code># Install Docker Desktop (winget)
+winget install Docker.DockerDesktop
+# Enable WSL2 backend when prompted, then in PowerShell:
+docker --version
+docker compose version</code></pre>
+      </div>
+
+      <div class="check-row">
+        <button class="btn ghost" onclick="Onboarding.checkDocker()">Check Docker</button>
+        <span id="docker-status" class="status-pill">not checked</span>
+      </div>
+
+      <div class="actions">
+        <button class="btn ghost" onclick="Onboarding.prev()">← Back</button>
+        <button class="btn primary" onclick="Onboarding.next()">Docker installed →</button>
+      </div>
+    </section>
+
+    <!-- STEP 4: Trinity Containers -->
+    <section class="step-panel" data-panel="4">
+      <h2>Trinity Containers</h2>
+      <p class="lead">
+        Trinity ships as two Docker containers plus a supporting memory stack:
+      </p>
+
+      <div class="arch-diagram">
+        <div class="arch-row">
+          <div class="arch-box host">
+            <h4>Your Computer (Host)</h4>
+            <div class="arch-box bridge">
+              <strong>Trinity Bridge</strong>
+              <small>Security layer · gatekeeper · runs in background</small>
+            </div>
+          </div>
+        </div>
+        <div class="arch-arrow">⇅ bridge API (loopback only)</div>
+        <div class="arch-row">
+          <div class="arch-box container trinity">
+            <strong>trinity-agent</strong>
+            <small>Isolated Trinity agent container</small>
+          </div>
+          <div class="arch-arrow-h">⇄</div>
+          <div class="arch-box container brain">
+            <strong>trinity-brain</strong>
+            <small>Memory · vectors · graph · reflection</small>
+          </div>
+        </div>
+      </div>
+
+      <p>
+        Spin up the whole stack with the Trinity compose file:
+      </p>
+      <pre><code># From the repo root:
+docker compose -f webapp/docker/docker-compose.trinity.yml up -d
+
+# Verify containers are healthy:
+docker ps --filter "name=trinity-"</code></pre>
+
+      <div class="check-row">
+        <button class="btn ghost" onclick="Onboarding.checkContainers()">Check Containers</button>
+        <span id="containers-status" class="status-pill">not checked</span>
+      </div>
+
+      <div class="actions">
+        <button class="btn ghost" onclick="Onboarding.prev()">← Back</button>
+        <button class="btn primary" onclick="Onboarding.next()">Containers running →</button>
+      </div>
+    </section>
+
+    <!-- STEP 5: Bridge -->
+    <section class="step-panel" data-panel="5">
+      <h2>Install the Bridge</h2>
+      <p class="lead">
+        The <strong>Bridge</strong> runs on your host (not in Docker) and is the only channel between
+        the Trinity container and your computer. It enforces the allow-lists you configure on
+        the Access Control page.
+      </p>
+
+      <div class="callout warn">
+        <strong>Why a bridge?</strong> Giving a container raw access to your host (Docker socket,
+        the filesystem, devices) defeats the purpose of containerising it. The bridge exposes a
+        narrow, audited API over localhost, and every request is logged and permission-checked.
+      </div>
+
+      <h3>1. Install dependencies</h3>
+      <pre><code>cd webapp/bridge
+npm install</code></pre>
+
+      <h3>2. Start the Bridge</h3>
+      <pre><code># Runs on http://127.0.0.1:4711 by default
+node bridge-server.js
+
+# Or install as a background service:
+node bridge-server.js --daemon</code></pre>
+
+      <h3>3. Pair the webapp with the Bridge</h3>
+      <p>Paste your one-time pairing token from the bridge console:</p>
+      <div class="pair-row">
+        <input type="text" id="pair-token" placeholder="TRN-xxxx-xxxx-xxxx" />
+        <button class="btn primary" onclick="Onboarding.pairBridge()">Pair</button>
+        <span id="pair-status" class="status-pill">not paired</span>
+      </div>
+
+      <div class="actions">
+        <button class="btn ghost" onclick="Onboarding.prev()">← Back</button>
+        <button class="btn primary" onclick="Onboarding.next()">Bridge ready →</button>
+      </div>
+    </section>
+
+    <!-- STEP 6: Agent Config -->
+    <section class="step-panel" data-panel="6">
+      <h2>Configure the Trinity Agent</h2>
+      <p class="lead">Basic agent identity &amp; model configuration. You can change these later from the Dashboard.</p>
+
+      <form class="config-form" onsubmit="return Onboarding.saveConfig(event)">
+        <label>
+          Agent name
+          <input type="text" id="cfg-name" value="Trinity" required />
+        </label>
+
+        <label>
+          Primary model provider
+          <select id="cfg-provider">
+            <option value="ollama">Ollama (local, via brain container)</option>
+            <option value="anthropic">Anthropic (Claude)</option>
+            <option value="openai">OpenAI</option>
+            <option value="morpheus">Morpheus Network (decentralized)</option>
+          </select>
+        </label>
+
+        <label>
+          API key (leave blank for local Ollama)
+          <input type="password" id="cfg-apikey" placeholder="sk-..." />
+        </label>
+
+        <label>
+          Default access scope for the agent
+          <select id="cfg-scope">
+            <option value="sandbox">Sandbox only (no host access)</option>
+            <option value="workspace" selected>Workspace (./workspace folder)</option>
+            <option value="custom">Custom (configure on Access Control page)</option>
+          </select>
+        </label>
+
+        <label class="inline">
+          <input type="checkbox" id="cfg-brain" checked />
+          Enable Trinity Brain (memory · vectors · graph)
+        </label>
+
+        <label class="inline">
+          <input type="checkbox" id="cfg-morpheus" />
+          Register agent on the Morpheus Network
+        </label>
+
+        <div class="actions">
+          <button type="button" class="btn ghost" onclick="Onboarding.prev()">← Back</button>
+          <button type="submit" class="btn primary">Save &amp; Continue →</button>
+        </div>
+      </form>
+    </section>
+
+    <!-- STEP 7: Launch -->
+    <section class="step-panel" data-panel="7">
+      <h2>Launch Trinity</h2>
+      <p class="lead">You're all set. Let's light her up.</p>
+
+      <div class="summary" id="summary">
+        <!-- Filled by JS -->
+      </div>
+
+      <div class="launch-row">
+        <button class="btn big primary" onclick="Onboarding.launch()">⚡ Start Trinity</button>
+      </div>
+
+      <div class="next-steps">
+        <a class="card-link" href="pages/dashboard.html">
+          <h3>Dashboard →</h3>
+          <p>Command &amp; control center. See container health, bridge status, and logs.</p>
+        </a>
+        <a class="card-link" href="pages/chat.html">
+          <h3>Chat →</h3>
+          <p>Talk to Trinity directly through the bridge.</p>
+        </a>
+        <a class="card-link" href="pages/access-control.html">
+          <h3>Access Control →</h3>
+          <p>Grant or revoke the agent's access to parts of your computer.</p>
+        </a>
+      </div>
+    </section>
+  </main>
+
+  <footer class="bottom-bar">
+    <span>Trinity · Morpheus Network · MIT License</span>
+    <span id="bridge-indicator" class="status-pill">Bridge: checking…</span>
+  </footer>
+
+  <script src="js/matrix-rain.js"></script>
+  <script src="js/bridge-client.js"></script>
+  <script src="js/onboarding.js"></script>
+</body>
+</html>

@@ -1,0 +1,98 @@
+# Trinity agent + Trinity brain stack.
+#
+# This is the compose file the webapp's onboarding wizard (and the Bridge's
+# /agent/start endpoint) uses to spin up Trinity.
+#
+# It is intentionally minimal compared to the repo-root docker-compose.yml:
+# here we care about the two things the webapp architecture requires ---
+#
+#   1. trinity-agent     — the isolated Trinity agent container.
+#                          Exposes its gateway HTTP API on 127.0.0.1:18789.
+#                          No host mounts, no Docker socket, no privileged mode.
+#                          Talks to the brain container on the internal network.
+#                          Talks to the host (your computer) only via the Bridge,
+#                          which it reaches at host.docker.internal:4711.
+#
+#   2. trinity-brain     — memory / vectors / graph / reflection service.
+#                          Backed by milvus + neo4j + ollama (see full stack
+#                          in ../../docker-compose.yml if you want those too).
+#
+# Start:
+#     docker compose -f webapp/docker/docker-compose.trinity.yml up -d
+#
+# Stop:
+#     docker compose -f webapp/docker/docker-compose.trinity.yml down
+
+name: trinity
+
+services:
+  trinity-agent:
+    build:
+      context: ../..
+      dockerfile: Dockerfile
+    image: trinity/agent:latest
+    container_name: trinity-agent
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:18789:18789"   # gateway API — loopback only, the bridge reaches this
+    environment:
+      - NODE_ENV=production
+      - TRINITY_BRAIN_API=http://trinity-brain:8100
+      - TRINITY_BRAIN_ENABLED=true
+      # The agent reaches the host-side Bridge at this URL when it wants to touch the host.
+      # "host.docker.internal" works on Docker Desktop (Win/Mac). On Linux the
+      # extra_hosts entry below maps it to the host gateway.
+      - TRINITY_BRIDGE_URL=http://host.docker.internal:4711
+      # The pairing token is injected at runtime by the Bridge's /agent/start
+      # endpoint via an env file so that it never ends up in the image.
+    env_file:
+      - ./trinity-agent.env
+    depends_on:
+      trinity-brain:
+        condition: service_started
+    networks:
+      - trinity
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    # No volume mounts from the host. Workspace is a named volume; if the agent
+    # needs access to a host folder, it MUST go through the Bridge's /access API.
+    volumes:
+      - trinity_agent_data:/root/.Trinity
+      - trinity_agent_workspace:/app/workspace
+    # Harden the container — no new privileges, drop dangerous capabilities.
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    command: ["node", "Trinity.mjs", "gateway", "--allow-unconfigured"]
+
+  trinity-brain:
+    build:
+      context: ../../brain-api
+      dockerfile: Dockerfile
+    image: trinity/brain:latest
+    container_name: trinity-brain
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8100:8100"
+    environment:
+      - CONFIG_PATH=/app/config.json
+      - DATA_DIR=/app/data
+      - PORT=8100
+    volumes:
+      - ../../docker/brain-config.json:/app/config.json:ro
+      - trinity_brain_data:/app/data
+    networks:
+      - trinity
+    security_opt:
+      - no-new-privileges:true
+
+volumes:
+  trinity_agent_data:
+  trinity_agent_workspace:
+  trinity_brain_data:
+
+networks:
+  trinity:
+    driver: bridge
+    name: trinity-net
