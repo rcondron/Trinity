@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Trinity — Chat</title>
+  <link rel="stylesheet" href="../css/style.css" />
+</head>
+<body class="matrix-bg">
+  <canvas id="matrix-rain"></canvas>
+
+  <header class="top-bar">
+    <div class="brand">
+      <div class="logo-ring"></div>
+      <div class="brand-text">
+        <h1>TRINITY</h1>
+        <p>Decentralized Open-Source AI Agent · by Morpheus</p>
+      </div>
+    </div>
+    <nav class="top-nav">
+      <a href="../StartHere.html">Start Here</a>
+      <a href="dashboard.html">Dashboard</a>
+      <a href="chat.html" class="active">Chat</a>
+      <a href="access-control.html">Access Control</a>
+    </nav>
+  </header>
+
+  <main class="page">
+    <h2>Chat with Trinity</h2>
+    <p class="lead">
+      Your messages are relayed from this browser to the Trinity Bridge, and from the bridge to the
+      trinity-agent Docker container. The bridge is the only point of contact between the agent and
+      your host.
+    </p>
+
+    <div class="chat-shell">
+      <aside class="chat-sidebar">
+        <h4>Conversations</h4>
+        <ul id="conv-list">
+          <li class="active" data-id="default">default</li>
+        </ul>
+        <button class="btn ghost" onclick="Chat.newConversation()">+ New</button>
+
+        <h4 style="margin-top:18px">Connection</h4>
+        <div class="status-pill" id="chat-bridge-status">checking…</div>
+        <div class="status-pill" id="chat-agent-status">agent: ?</div>
+      </aside>
+
+      <section class="chat-main">
+        <div class="chat-log" id="chat-log">
+          <div class="msg system">
+            Welcome to Trinity. Say hi.
+            Messages route: <b>browser → bridge → trinity-agent container</b>.
+          </div>
+        </div>
+        <div class="chat-input">
+          <textarea id="chat-box" placeholder="Ask Trinity anything… (Shift+Enter for newline)"></textarea>
+          <button class="btn primary" onclick="Chat.send()">Send</button>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <footer class="bottom-bar">
+    <span>Trinity · Morpheus Network · MIT License</span>
+    <span id="bridge-indicator" class="status-pill">Bridge: checking…</span>
+  </footer>
+
+  <script src="../js/matrix-rain.js"></script>
+  <script src="../js/bridge-client.js"></script>
+  <script src="../js/chat.js"></script>
+</body>
+</html>

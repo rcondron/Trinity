@@ -1,0 +1,125 @@
+// BridgeClient
+// Talks to the Trinity Bridge running on the host (http://127.0.0.1:4711 by default).
+// The Bridge is the ONLY way the webapp communicates with the Trinity container.
+// Every request is stamped with the pairing token stored in localStorage.
+(function (global) {
+  const DEFAULT_URL = "http://127.0.0.1:4711";
+  const TOKEN_KEY = "trinity.bridge.token";
+  const URL_KEY = "trinity.bridge.url";
+
+  class BridgeClient {
+    constructor() {
+      this.baseUrl = localStorage.getItem(URL_KEY) || DEFAULT_URL;
+      this.token = localStorage.getItem(TOKEN_KEY) || null;
+    }
+
+    setBaseUrl(url) {
+      this.baseUrl = url;
+      localStorage.setItem(URL_KEY, url);
+    }
+
+    setToken(token) {
+      this.token = token;
+      if (token) localStorage.setItem(TOKEN_KEY, token);
+      else localStorage.removeItem(TOKEN_KEY);
+    }
+
+    headers() {
+      const h = { "Content-Type": "application/json" };
+      if (this.token) h["X-Trinity-Token"] = this.token;
+      return h;
+    }
+
+    async _request(method, path, body) {
+      const opts = { method, headers: this.headers() };
+      if (body !== undefined) opts.body = JSON.stringify(body);
+      try {
+        const res = await fetch(this.baseUrl + path, opts);
+        const text = await res.text();
+        let data = null;
+        try { data = text ? JSON.parse(text) : null; } catch { data = text; }
+        if (!res.ok) {
+          const err = new Error((data && data.error) || res.statusText);
+          err.status = res.status;
+          err.data = data;
+          throw err;
+        }
+        return data;
+      } catch (e) {
+        // Normalise network errors so callers can show a friendly message.
+        if (e.name === "TypeError") {
+          const err = new Error("Bridge unreachable at " + this.baseUrl);
+          err.code = "BRIDGE_DOWN";
+          throw err;
+        }
+        throw e;
+      }
+    }
+
+    // ---- Health / status ----
+    health()           { return this._request("GET",  "/health"); }
+    status()           { return this._request("GET",  "/status"); }
+    dockerStatus()     { return this._request("GET",  "/docker/status"); }
+    containers()      { return this._request("GET",  "/containers"); }
+
+    // ---- Pairing ----
+    pair(token) {
+      // The token is sent as the request body and (on success) stored for future calls.
+      return this._request("POST", "/pair", { token }).then((r) => {
+        this.setToken(token);
+        return r;
+      });
+    }
+    unpair() {
+      this.setToken(null);
+      return { ok: true };
+    }
+
+    // ---- Chat relay ----
+    // The bridge forwards the prompt to the trinity-agent container and streams the reply.
+    chat(message, conversationId) {
+      return this._request("POST", "/chat", { message, conversationId });
+    }
+    chatHistory(conversationId) {
+      return this._request("GET", "/chat/history?id=" + encodeURIComponent(conversationId || "default"));
+    }
+
+    // ---- Permissions / access control ----
+    listPermissions()            { return this._request("GET",    "/permissions"); }
+    addPermission(perm)          { return this._request("POST",   "/permissions", perm); }
+    removePermission(id)         { return this._request("DELETE", "/permissions/" + id); }
+    togglePermission(id, enabled){ return this._request("PATCH",  "/permissions/" + id, { enabled }); }
+
+    // ---- Audit log ----
+    log(limit = 100)     { return this._request("GET", "/log?limit=" + limit); }
+
+    // ---- Agent config ----
+    saveConfig(cfg)      { return this._request("POST", "/config", cfg); }
+    getConfig()          { return this._request("GET",  "/config"); }
+
+    // ---- Lifecycle control ----
+    startAgent()         { return this._request("POST", "/agent/start"); }
+    stopAgent()          { return this._request("POST", "/agent/stop"); }
+    restartAgent()       { return this._request("POST", "/agent/restart"); }
+  }
+
+  global.Bridge = new BridgeClient();
+
+  // Heartbeat indicator in the footer (if present).
+  function updateIndicator() {
+    const el = document.getElementById("bridge-indicator");
+    if (!el) return;
+    global.Bridge.health().then((r) => {
+      el.textContent = "Bridge: " + (r && r.ok ? "online" : "degraded");
+      el.className = "status-pill " + (r && r.ok ? "ok" : "warn");
+    }).catch(() => {
+      el.textContent = "Bridge: offline";
+      el.className = "status-pill err";
+    });
+  }
+
+  document.addEventListener("DOMContentLoaded", () => {
+    updateIndicator();
+    setInterval(updateIndicator, 10000);
+  });
+})(window);

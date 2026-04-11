@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Trinity — Command & Control</title>
+  <link rel="stylesheet" href="../css/style.css" />
+</head>
+<body class="matrix-bg">
+  <canvas id="matrix-rain"></canvas>
+
+  <header class="top-bar">
+    <div class="brand">
+      <div class="logo-ring"></div>
+      <div class="brand-text">
+        <h1>TRINITY</h1>
+        <p>Command &amp; Control Center</p>
+      </div>
+    </div>
+    <nav class="top-nav">
+      <a href="../StartHere.html">Start Here</a>
+      <a href="dashboard.html" class="active">Dashboard</a>
+      <a href="chat.html">Chat</a>
+      <a href="access-control.html">Access Control</a>
+    </nav>
+  </header>
+
+  <main class="page">
+    <h2>Dashboard</h2>
+    <p class="lead">Live health of your Trinity stack. All telemetry is pulled from the Bridge.</p>
+
+    <div class="dashboard-grid">
+      <div class="card">
+        <h3>Bridge</h3>
+        <div class="big-stat" id="stat-bridge">—</div>
+        <div class="sub" id="sub-bridge">host-side gatekeeper</div>
+      </div>
+      <div class="card">
+        <h3>Trinity Agent</h3>
+        <div class="big-stat" id="stat-agent">—</div>
+        <div class="sub" id="sub-agent">container health</div>
+      </div>
+      <div class="card">
+        <h3>Trinity Brain</h3>
+        <div class="big-stat" id="stat-brain">—</div>
+        <div class="sub" id="sub-brain">memory + vectors + graph</div>
+      </div>
+      <div class="card">
+        <h3>Permissions</h3>
+        <div class="big-stat" id="stat-perms">—</div>
+        <div class="sub">enabled host resources</div>
+      </div>
+    </div>
+
+    <h3 style="margin-top:28px; color:var(--accent-2);">Controls</h3>
+    <div class="actions" style="justify-content:flex-start;">
+      <button class="btn primary" onclick="Dashboard.start()">Start</button>
+      <button class="btn ghost"   onclick="Dashboard.restart()">Restart</button>
+      <button class="btn danger"  onclick="Dashboard.stop()">Stop</button>
+      <button class="btn ghost"   onclick="Dashboard.refresh()">↻ Refresh</button>
+    </div>
+
+    <h3 style="margin-top:28px; color:var(--accent-2);">Audit Log</h3>
+    <div class="log-stream" id="log-stream"></div>
+  </main>
+
+  <footer class="bottom-bar">
+    <span>Trinity · Morpheus Network · MIT License</span>
+    <span id="bridge-indicator" class="status-pill">Bridge: checking…</span>
+  </footer>
+
+  <script src="../js/matrix-rain.js"></script>
+  <script src="../js/bridge-client.js"></script>
+  <script src="../js/dashboard.js"></script>
+</body>
+</html>
