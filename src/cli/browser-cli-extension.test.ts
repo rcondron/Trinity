@@ -18,12 +18,12 @@ vi.mock("../runtime.js", () => ({
 }));
 
 let registerBrowserExtensionCommands: typeof import("./browser-cli-extension.js").registerBrowserExtensionCommands;
-let TABHR_CDP_URL: string;
+let BROWSER_EXT_URL: string;
 
 beforeAll(async () => {
   const mod = await import("./browser-cli-extension.js");
   registerBrowserExtensionCommands = mod.registerBrowserExtensionCommands;
-  TABHR_CDP_URL = mod.TABHR_CDP_URL;
+  BROWSER_EXT_URL = mod.BROWSER_EXT_URL;
 });
 
 beforeEach(() => {
@@ -33,16 +33,16 @@ beforeEach(() => {
   runtime.exit.mockReset();
 });
 
-describe("browser extension (TabHR)", () => {
-  it("url command prints TabHR CDP URL", async () => {
+describe("browser extension", () => {
+  it("url command prints the browser extension URL", async () => {
     const program = new Command();
     const browser = program.command("browser").option("--json", "JSON output", false);
     registerBrowserExtensionCommands(browser, (cmd) => cmd.parent?.opts?.() as { json?: boolean });
 
     await program.parseAsync(["browser", "extension", "url"], { from: "user" });
 
-    expect(runtime.log).toHaveBeenCalledWith(TABHR_CDP_URL);
-    expect(TABHR_CDP_URL).toBe("http://127.0.0.1:9220");
+    expect(runtime.log).toHaveBeenCalledWith(BROWSER_EXT_URL);
+    expect(BROWSER_EXT_URL).toBe("http://127.0.0.1:9220");
   });
 
   it("url --json outputs JSON with url and port", async () => {
@@ -68,7 +68,7 @@ describe("browser extension (TabHR)", () => {
     expect(runtime.error).toHaveBeenCalled();
     const msg = (runtime.error.mock.calls[0] as unknown[])[0] as string;
     expect(msg).toContain("9220");
-    expect(msg).toContain("TabHR");
+    expect(msg).toContain("Browser extension");
   });
 });
 

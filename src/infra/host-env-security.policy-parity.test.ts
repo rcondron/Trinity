@@ -24,7 +24,7 @@ describe("host env security policy parity", () => {
     const swiftPath = path.join(repoRoot, "apps/macos/Sources/Trinity/HostEnvSanitizer.swift");
 
     if (!fs.existsSync(swiftPath)) {
-      return; // Skip when macOS app sources are not present (e.g. TabHR Docker fork)
+      return; // Skip when macOS app sources are not present
     }
 
     const policy = JSON.parse(fs.readFileSync(policyPath, "utf8")) as HostEnvSecurityPolicy;

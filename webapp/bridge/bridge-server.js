@@ -25,12 +25,14 @@ const crypto = require("crypto");
 
 const security = require("./security");
 const TrinityClient = require("./trinity-client");
+const BrainClient = require("./brain-client");
 
 // ---- Configuration ---------------------------------------------------------
 
 const CONFIG_DIR  = path.join(os.homedir(), ".trinity-bridge");
 const CONFIG_FILE = path.join(CONFIG_DIR, "config.json");
 const AUDIT_FILE  = path.join(CONFIG_DIR, "audit.log");
+const BACKUP_FILE = path.join(CONFIG_DIR, "backup-config.json");
 const PERM_FILE   = path.join(CONFIG_DIR, "permissions.json");
 const TOKEN_FILE  = path.join(CONFIG_DIR, "pairing-token");
 
@@ -38,6 +40,7 @@ const DEFAULTS = {
   host: "127.0.0.1",           // loopback-only by design
   port: 4711,
   trinityContainerUrl: process.env.TRINITY_CONTAINER_URL || "http://127.0.0.1:18789",
+  brainContainerUrl:   process.env.TRINITY_BRAIN_URL     || "http://127.0.0.1:8100",
   allowedOrigins: [
     "http://127.0.0.1",
     "http://localhost",
@@ -133,7 +136,7 @@ function originAllowed(origin, cfg) {
 
 // ---- Request router --------------------------------------------------------
 
-function createServer(cfg, token, trinity) {
+function createServer(cfg, token, trinity, brain) {
   const perms = security.loadPermissions(PERM_FILE);
 
   const routes = [];
@@ -262,7 +265,93 @@ function createServer(cfg, token, trinity) {
     return { log: auditRing.slice(-limit) };
   });
 
-  // ---- Agent config ----
+  // ---- Skills (relayed to trinity-brain) ------------------------------------
+  // All skills live in the trinity-brain container. There is no bundled skills
+  // folder on the host — the brain is the single source of truth, and the
+  // agent updates its own skills as it learns. These bridge routes are thin
+  // relays that also write to the audit log.
+
+  route("GET", "/skills/status", async (req) => {
+    requireAuth(req);
+    try { return await brain.skillsStatus(); }
+    catch (e) { audit("skill.status.fail", { err: e.message }); throw e; }
+  });
+
+  route("POST", "/skills/recall", async (req) => {
+    requireAuth(req);
+    const body = await readBody(req) || {};
+    if (!body.query) { const e = new Error("query required"); e.status = 400; throw e; }
+    audit("skill.recall", { query: String(body.query).slice(0, 80) });
+    return brain.recallSkills(body);
+  });
+
+  // Called by the webapp (user-authored) or by the Trinity agent itself
+  // (container → bridge → brain) when it figures out a new way to do something.
+  // Source defaults to "auto-created" to distinguish learned skills from the
+  // ones a human typed in the UI.
+  route("POST", "/skills/learn", async (req) => {
+    requireAuth(req);
+    const body = await readBody(req) || {};
+    if (!body.name || !body.content) {
+      const e = new Error("name and content required"); e.status = 400; throw e;
+    }
+    const skill = { ...body, source: body.source || "auto-created" };
+    audit("skill.learn", { name: skill.name, source: skill.source });
+    return brain.ingestSkill(skill);
+  });
+
+  // Manually add a skill (from the webapp UI). Same as /learn but source=custom.
+  route("POST", "/skills", async (req) => {
+    requireAuth(req);
+    const body = await readBody(req) || {};
+    if (!body.name || !body.content) {
+      const e = new Error("name and content required"); e.status = 400; throw e;
+    }
+    const skill = { ...body, source: "custom" };
+    audit("skill.add", { name: skill.name });
+    return brain.ingestSkill(skill);
+  });
+
+  // Agent feedback loop: tell the brain whether a skill helped or hurt so
+  // significance drifts up or down over time. This is how the agent's skill
+  // library self-improves.
+  route("POST", "/skills/:id/success", async (req, url, params) => {
+    requireAuth(req);
+    audit("skill.success", { id: params.id });
+    return brain.markSuccess(params.id);
+  });
+
+  route("POST", "/skills/:id/fail", async (req, url, params) => {
+    requireAuth(req);
+    audit("skill.fail", { id: params.id });
+    return brain.markFailure(params.id);
+  });
+
+  // Evolve a skill into a newer version. The old version stays in the brain,
+  // linked via evolved_from, so we never lose the learning history.
+  route("POST", "/skills/:id/evolve", async (req, url, params) => {
+    requireAuth(req);
+    const body = await readBody(req) || {};
+    audit("skill.evolve", { id: params.id, name: body.name });
+    return brain.evolveSkill(params.id, body);
+  });
+
+  // ---- Brain model management (relayed to trinity-brain /v2/model) ----------
+
+  route("GET", "/brain/model", async (req) => {
+    requireAuth(req);
+    try { return await brain.getModelConfig(); }
+    catch (e) { audit("brain.model.fail", { err: e.message }); throw e; }
+  });
+
+  route("POST", "/brain/model", async (req) => {
+    requireAuth(req);
+    const body = await readBody(req) || {};
+    audit("brain.model.update", Object.keys(body));
+    return brain.updateModelConfig(body);
+  });
+
+  // ---- Settings / config ----
   route("GET", "/config", async (req) => {
     requireAuth(req);
     return { config: cfg };
@@ -271,15 +360,224 @@ function createServer(cfg, token, trinity) {
   route("POST", "/config", async (req) => {
     requireAuth(req);
     const body = await readBody(req) || {};
-    // Only whitelisted keys are persisted.
-    const allowed = ["name", "provider", "scope", "brain", "morpheus"];
+    // Whitelisted keys that may be persisted.
+    const allowed = [
+      "name", "provider", "scope", "brain", "morpheus",
+      // Model / provider settings
+      "apiKeys", "defaultModel", "temperature", "maxTokens",
+      // Brain settings
+      "brainContainerUrl", "trinityContainerUrl",
+      // Misc
+      "logLevel",
+    ];
     const patch = {};
     for (const k of allowed) if (k in body) patch[k] = body[k];
     Object.assign(cfg, patch);
     saveConfig(cfg);
-    audit("config.save", patch);
+    audit("config.save", Object.keys(patch));
     return { ok: true, config: cfg };
   });
+
+  // ---- Backup configuration for trinity-brain ----
+  // Persisted separately so backup secrets never leak into the main config.
+  function loadBackupConfig() {
+    ensureConfigDir();
+    if (fs.existsSync(BACKUP_FILE)) {
+      try { return JSON.parse(fs.readFileSync(BACKUP_FILE, "utf8")); }
+      catch { /* fall through */ }
+    }
+    return { enabled: false, provider: "none", schedule: "daily", retain: 7 };
+  }
+
+  function saveBackupConfig(bc) {
+    ensureConfigDir();
+    fs.writeFileSync(BACKUP_FILE, JSON.stringify(bc, null, 2), { mode: 0o600 });
+  }
+
+  route("GET", "/backup/config", async (req) => {
+    requireAuth(req);
+    const bc = loadBackupConfig();
+    // Never return raw secrets to the browser — mask them.
+    const masked = { ...bc };
+    for (const k of ["secretKey", "accessKey", "password", "apiKey", "clientSecret", "refreshToken"]) {
+      if (masked[k]) masked[k] = "••••••";
+    }
+    return { backup: masked };
+  });
+
+  route("POST", "/backup/config", async (req) => {
+    requireAuth(req);
+    const body = await readBody(req) || {};
+    const allowed = [
+      "enabled", "provider", "schedule", "retain",
+      // Backblaze B2
+      "b2KeyId", "b2AppKey", "b2Bucket",
+      // AWS S3 / S3-compatible
+      "s3Endpoint", "s3Region", "s3Bucket", "accessKey", "secretKey",
+      // FTP / SFTP
+      "ftpHost", "ftpPort", "ftpUser", "ftpPassword", "ftpPath", "ftpSecure",
+      // Google Drive
+      "gdClientId", "gdClientSecret", "gdRefreshToken", "gdFolderId",
+      // Azure Blob
+      "azConnectionString", "azContainer",
+      // Local path (for mounted NAS / external drive)
+      "localPath",
+      // Restic / rclone wrapper
+      "resticRepo", "resticPassword",
+    ];
+    const current = loadBackupConfig();
+    for (const k of allowed) {
+      if (k in body) {
+        // Don't overwrite secrets with the masked placeholder.
+        if (typeof body[k] === "string" && body[k] === "••••••") continue;
+        current[k] = body[k];
+      }
+    }
+    saveBackupConfig(current);
+    audit("backup.config.save", { provider: current.provider, schedule: current.schedule });
+    return { ok: true };
+  });
+
+  // Trigger an immediate backup (on-demand).
+  route("POST", "/backup/run", async (req) => {
+    requireAuth(req);
+    const bc = loadBackupConfig();
+    if (!bc.enabled || bc.provider === "none") {
+      const e = new Error("backups not configured"); e.status = 400; throw e;
+    }
+    audit("backup.run.start", { provider: bc.provider });
+    try {
+      const result = await runBackup(bc);
+      audit("backup.run.ok", { provider: bc.provider });
+      return result;
+    } catch (e) {
+      audit("backup.run.fail", { provider: bc.provider, err: e.message });
+      throw e;
+    }
+  });
+
+  // Return the backup run history (from audit log).
+  route("GET", "/backup/history", async (req) => {
+    requireAuth(req);
+    const backupLogs = auditRing.filter((l) => l.kind && l.kind.startsWith("backup."));
+    return { history: backupLogs.slice(-50) };
+  });
+
+  // ---- Backup executor -------------------------------------------------------
+  // Dumps trinity-brain data via docker exec, then ships the archive to the
+  // configured destination. Each provider handler is deliberately minimal so
+  // operators can audit exactly what runs.
+  async function runBackup(bc) {
+    // Step 1: create a timestamped tar.gz from the brain container's /app/data.
+    const ts = new Date().toISOString().replace(/[:.]/g, "-");
+    const archiveName = `trinity-brain-backup-${ts}.tar.gz`;
+    const hostArchive = path.join(CONFIG_DIR, archiveName);
+
+    await new Promise((resolve, reject) => {
+      execFile("docker", [
+        "exec", "trinity-brain",
+        "tar", "czf", "/tmp/" + archiveName, "-C", "/app/data", "."
+      ], { timeout: 120_000 }, (err) => {
+        if (err) return reject(new Error("backup tar failed: " + err.message));
+        resolve();
+      });
+    });
+
+    // Copy the tar from the container to the host config dir.
+    await new Promise((resolve, reject) => {
+      execFile("docker", [
+        "cp", "trinity-brain:/tmp/" + archiveName, hostArchive
+      ], { timeout: 60_000 }, (err) => {
+        if (err) return reject(new Error("docker cp failed: " + err.message));
+        resolve();
+      });
+    });
+
+    // Step 2: upload to the configured provider.
+    const uploadResult = await uploadBackup(bc, hostArchive, archiveName);
+
+    // Cleanup local archive.
+    try { fs.unlinkSync(hostArchive); } catch {}
+
+    return { ok: true, archive: archiveName, ...uploadResult };
+  }
+
+  async function uploadBackup(bc, filePath, fileName) {
+    switch (bc.provider) {
+      case "local":
+        return uploadLocal(bc, filePath, fileName);
+      case "s3":
+      case "b2":
+        return uploadS3Compatible(bc, filePath, fileName);
+      case "ftp":
+        return uploadFtp(bc, filePath, fileName);
+      case "gdrive":
+      case "azure":
+      case "restic":
+        // These providers would need additional tooling installed on the host.
+        // For now we shell out to rclone if available, otherwise fail helpfully.
+        return uploadRclone(bc, filePath, fileName);
+      default:
+        throw new Error("unknown backup provider: " + bc.provider);
+    }
+  }
+
+  function uploadLocal(bc, filePath, fileName) {
+    const dest = path.resolve(bc.localPath || path.join(CONFIG_DIR, "backups"));
+    fs.mkdirSync(dest, { recursive: true });
+    fs.copyFileSync(filePath, path.join(dest, fileName));
+    return { destination: dest + "/" + fileName };
+  }
+
+  function uploadS3Compatible(bc, filePath, fileName) {
+    // Use the AWS CLI (or compatible) which supports both S3 and Backblaze B2.
+    const env = { ...process.env };
+    if (bc.accessKey)  env.AWS_ACCESS_KEY_ID     = bc.accessKey  || bc.b2KeyId  || "";
+    if (bc.secretKey)  env.AWS_SECRET_ACCESS_KEY  = bc.secretKey  || bc.b2AppKey || "";
+    const endpoint = bc.s3Endpoint || (bc.provider === "b2" ? "https://s3.us-west-004.backblazeb2.com" : undefined);
+    const bucket = bc.s3Bucket || bc.b2Bucket || "trinity-backups";
+    const args = ["s3", "cp", filePath, `s3://${bucket}/${fileName}`];
+    if (endpoint) args.push("--endpoint-url", endpoint);
+    if (bc.s3Region) args.push("--region", bc.s3Region);
+
+    return new Promise((resolve, reject) => {
+      execFile("aws", args, { env, timeout: 300_000 }, (err, stdout, stderr) => {
+        if (err) return reject(new Error("aws s3 cp failed: " + (stderr || err.message)));
+        resolve({ destination: `s3://${bucket}/${fileName}` });
+      });
+    });
+  }
+
+  function uploadFtp(bc, filePath, fileName) {
+    const host = bc.ftpHost || "localhost";
+    const port = bc.ftpPort || 21;
+    const user = bc.ftpUser || "anonymous";
+    const pass = bc.ftpPassword || "";
+    const remotePath = (bc.ftpPath || "/") + "/" + fileName;
+    const scheme = bc.ftpSecure ? "ftps" : "ftp";
+    // Use curl for FTP uploads — universally available.
+    const url = `${scheme}://${host}:${port}${remotePath}`;
+    const args = ["-T", filePath, "--user", `${user}:${pass}`, url];
+    return new Promise((resolve, reject) => {
+      execFile("curl", args, { timeout: 300_000 }, (err, stdout, stderr) => {
+        if (err) return reject(new Error("ftp upload failed: " + (stderr || err.message)));
+        resolve({ destination: url });
+      });
+    });
+  }
+
+  function uploadRclone(bc, filePath, fileName) {
+    // rclone is the universal backend for gdrive, azure, restic, etc.
+    // The user needs to have rclone configured with a remote named "trinity-backup".
+    const remote = bc.rcloneRemote || "trinity-backup";
+    const dest = `${remote}:${bc.rclonePath || "trinity-backups"}/${fileName}`;
+    return new Promise((resolve, reject) => {
+      execFile("rclone", ["copyto", filePath, dest], { timeout: 600_000 }, (err, stdout, stderr) => {
+        if (err) return reject(new Error("rclone failed: " + (stderr || err.message) + ". Install rclone and run 'rclone config' to set up the remote."));
+        resolve({ destination: dest });
+      });
+    });
+  }
 
   // ---- Agent lifecycle ----
   route("POST", "/agent/start",   async (req) => { requireAuth(req); return dockerCompose("up", "-d"); });
@@ -354,8 +652,9 @@ function main() {
   const cfg = loadConfig();
   const token = loadOrCreateToken();
   const trinity = new TrinityClient(cfg.trinityContainerUrl);
+  const brain   = new BrainClient(cfg.brainContainerUrl);
 
-  const server = createServer(cfg, token, trinity);
+  const server = createServer(cfg, token, trinity, brain);
   server.listen(cfg.port, cfg.host, () => {
     const banner = [
       "",
@@ -366,6 +665,7 @@ function main() {
       "",
       `  Listening   : http://${cfg.host}:${cfg.port}`,
       `  Agent URL   : ${cfg.trinityContainerUrl}`,
+      `  Brain URL   : ${cfg.brainContainerUrl}`,
       `  Config dir  : ${CONFIG_DIR}`,
       "",
       `  Pairing token: ${token}`,

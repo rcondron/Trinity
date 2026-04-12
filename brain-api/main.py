@@ -94,11 +94,15 @@ async def lifespan(app: FastAPI):
         enhanced_search = None
     
     # Initialize Reflection Engine
-    ollama_url = os.getenv("OLLAMA_URL", "http://localhost:11434")
-    
+    # LLM_URL / OLLAMA_URL: the endpoint for the brain's local LLM (Ollama or llama.cpp).
+    # LLM_BACKEND: "ollama" (default) or "openai" (for llama.cpp / vLLM / LiteLLM).
+    llm_url = os.getenv("LLM_URL") or os.getenv("OLLAMA_URL", "http://localhost:11434")
+    llm_backend = os.getenv("LLM_BACKEND", "ollama")
+
     try:
         reflection_engine = ReflectionEngine(
-            DATA_DIR, graph_manager, beliefs_manager, enhanced_search, ollama_url
+            DATA_DIR, graph_manager, beliefs_manager, enhanced_search,
+            ollama_url=llm_url, llm_backend=llm_backend
         )
         print("Reflection engine initialized successfully")
     except Exception as e:
@@ -1296,6 +1300,70 @@ async def contradictions():
 async def compress():
     results = await run_compression()
     return results
+
+
+# ═══ BRAIN MODEL CONFIG ════════════════════════════════════════════════════════
+
+@app.get("/v2/model/config")
+async def get_model_config():
+    """Return the current LLM and embedding model configuration."""
+    cfg = get_config()
+    return {
+        "llm_backend": cfg.get("llm_backend", os.getenv("LLM_BACKEND", "ollama")),
+        "llm_url": cfg.get("llm_url", os.getenv("LLM_URL") or os.getenv("OLLAMA_URL", "http://ollama:11434")),
+        "embedding_model": cfg.get("embedding_model", cfg.get("embedding", {}).get("model", "nomic-embed-text")),
+        "embedding_dim": cfg.get("embedding_dim", cfg.get("embedding", {}).get("dimension", 768)),
+        "generation_model": cfg.get("ner", {}).get("model", "qwen2.5:7b"),
+        "compression_model": cfg.get("compression_model", "qwen2.5:7b"),
+    }
+
+
+@app.post("/v2/model/config")
+async def update_model_config(body: dict):
+    """Update model configuration and reload.
+
+    Accepts any combination of:
+      llm_backend, llm_url, embedding_model, embedding_dim,
+      generation_model, compression_model
+    """
+    allowed = {
+        "llm_backend", "llm_url",
+        "embedding_model", "embedding_dim",
+        "generation_model", "compression_model",
+    }
+    cfg = get_config()
+    patch = {k: v for k, v in body.items() if k in allowed}
+
+    # Map user-friendly keys into the nested config structure the brain expects.
+    if "embedding_model" in patch:
+        cfg["embedding_model"] = patch["embedding_model"]
+        cfg.setdefault("embedding", {})["model"] = patch["embedding_model"]
+    if "embedding_dim" in patch:
+        cfg["embedding_dim"] = patch["embedding_dim"]
+        cfg.setdefault("embedding", {})["dimension"] = patch["embedding_dim"]
+    if "generation_model" in patch:
+        cfg.setdefault("ner", {})["model"] = patch["generation_model"]
+    if "compression_model" in patch:
+        cfg["compression_model"] = patch["compression_model"]
+    if "llm_backend" in patch:
+        cfg["llm_backend"] = patch["llm_backend"]
+    if "llm_url" in patch:
+        cfg["llm_url"] = patch["llm_url"]
+
+    # Persist to disk so it survives restarts.
+    config_path = os.getenv("CONFIG_PATH", "/app/config.json")
+    try:
+        import json as _json
+        with open(config_path, "w") as f:
+            _json.dump(cfg, f, indent=2)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Could not write config: {e}")
+
+    # Force the in-memory config to reload.
+    from config import reload_config
+    reload_config()
+
+    return {"ok": True, "config": await get_model_config()}
 
 
 # Health check

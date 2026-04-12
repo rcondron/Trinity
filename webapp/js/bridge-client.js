@@ -93,14 +93,35 @@
     // ---- Audit log ----
     log(limit = 100)     { return this._request("GET", "/log?limit=" + limit); }
 
-    // ---- Agent config ----
+    // ---- Agent config / settings ----
     saveConfig(cfg)      { return this._request("POST", "/config", cfg); }
     getConfig()          { return this._request("GET",  "/config"); }
+
+    // ---- Backup ----
+    getBackupConfig()          { return this._request("GET",  "/backup/config"); }
+    saveBackupConfig(cfg)      { return this._request("POST", "/backup/config", cfg); }
+    runBackup()                { return this._request("POST", "/backup/run"); }
+    backupHistory()            { return this._request("GET",  "/backup/history"); }
+
+    // ---- Brain model management ----
+    getBrainModel()            { return this._request("GET",  "/brain/model"); }
+    saveBrainModel(cfg)        { return this._request("POST", "/brain/model", cfg); }
 
     // ---- Lifecycle control ----
     startAgent()         { return this._request("POST", "/agent/start"); }
     stopAgent()          { return this._request("POST", "/agent/stop"); }
     restartAgent()       { return this._request("POST", "/agent/restart"); }
+
+    // ---- Skills (relayed to trinity-brain) ----
+    // All skills live in the trinity-brain container. There is no bundled
+    // on-disk skill folder; the agent learns and updates them over time.
+    skillsStatus()            { return this._request("GET",  "/skills/status"); }
+    recallSkills(body)        { return this._request("POST", "/skills/recall", body); }
+    addSkill(skill)           { return this._request("POST", "/skills",         skill); }
+    learnSkill(skill)         { return this._request("POST", "/skills/learn",   skill); }
+    markSkillSuccess(id)      { return this._request("POST", "/skills/" + id + "/success"); }
+    markSkillFailure(id)      { return this._request("POST", "/skills/" + id + "/fail"); }
+    evolveSkill(id, skill)    { return this._request("POST", "/skills/" + id + "/evolve", skill); }
   }
 
   global.Bridge = new BridgeClient();

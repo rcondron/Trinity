@@ -6,7 +6,7 @@ import {
   listKnownProfileNames,
 } from "./server-context.js";
 
-/** TabHR uses direct CDP on port 9220; no extension relay is started. */
+/** The browser extension exposes its API directly on port 9220; no extension relay is started. */
 export async function ensureExtensionRelayForProfiles(_params: {
   resolved: ResolvedBrowserConfig;
   onWarn: (message: string) => void;
@@ -16,7 +16,7 @@ export async function ensureExtensionRelayForProfiles(_params: {
     if (!profile || profile.driver !== "extension") {
       continue;
     }
-    // TabHR browser extension exposes CDP directly at profile.cdpUrl (e.g. :9220); no relay.
+    // Browser extension exposes its JSON envelope API directly at profile.cdpUrl (e.g. :9220); no relay.
   }
 }
 

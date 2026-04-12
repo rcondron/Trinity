@@ -234,7 +234,7 @@ export async function ensureControlUiAssetsBuilt(
 
   const repoRoot = resolveControlUiRepoRoot(process.argv[1]);
   if (!repoRoot) {
-    // No UI sources (e.g. TabHR Docker fork); gateway runs without Control UI.
+    // No UI sources present; gateway runs without Control UI.
     return { ok: true, built: false };
   }
 

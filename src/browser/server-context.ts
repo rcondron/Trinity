@@ -31,7 +31,11 @@ import type {
   ProfileRuntimeState,
   ProfileStatus,
 } from "./server-context.types.js";
-import { createTabhrClient, isTabhrReachable, TABHR_TARGET_ID } from "./tabhr-client.js";
+import {
+  createBrowserExtClient,
+  isBrowserExtReachable,
+  BROWSER_EXT_TARGET_ID,
+} from "./browser-ext-client.js";
 import { resolveTargetIdFromTabs } from "./target-id.js";
 import { movePathToTrash } from "./trash.js";
 
@@ -98,11 +102,11 @@ function createProfileContext(
 
   const listTabs = async (): Promise<BrowserTab[]> => {
     if (profile.driver === "extension") {
-      const tabhr = createTabhrClient(profile.cdpUrl);
-      const data = await tabhr.status(5000);
+      const extClient = createBrowserExtClient(profile.cdpUrl);
+      const data = await extClient.status(5000);
       return [
         {
-          targetId: TABHR_TARGET_ID,
+          targetId: BROWSER_EXT_TARGET_ID,
           title: data.title ?? "",
           url: data.url ?? "",
           type: "page",
@@ -150,12 +154,12 @@ function createProfileContext(
 
     if (profile.driver === "extension") {
       await assertBrowserNavigationAllowed({ url, ...ssrfPolicyOpts });
-      const tabhr = createTabhrClient(profile.cdpUrl);
-      const data = await tabhr.navigate(url, 8000);
+      const extClient = createBrowserExtClient(profile.cdpUrl);
+      const data = await extClient.navigate(url, 8000);
       const profileState = getProfileState();
-      profileState.lastTargetId = TABHR_TARGET_ID;
+      profileState.lastTargetId = BROWSER_EXT_TARGET_ID;
       return {
-        targetId: TABHR_TARGET_ID,
+        targetId: BROWSER_EXT_TARGET_ID,
         title: data.title ?? "",
         url: data.url ?? url,
         type: "page",
@@ -272,7 +276,7 @@ function createProfileContext(
 
   const isReachable = async (timeoutMs?: number) => {
     if (profile.driver === "extension") {
-      return await isTabhrReachable(profile.cdpUrl, resolveRemoteHttpTimeout(timeoutMs) ?? 2000);
+      return await isBrowserExtReachable(profile.cdpUrl, resolveRemoteHttpTimeout(timeoutMs) ?? 2000);
     }
     const httpTimeout = resolveRemoteHttpTimeout(timeoutMs);
     const wsTimeout = resolveRemoteWsTimeout(timeoutMs);
@@ -281,7 +285,7 @@ function createProfileContext(
 
   const isHttpReachable = async (timeoutMs?: number) => {
     if (profile.driver === "extension") {
-      return await isTabhrReachable(profile.cdpUrl, resolveRemoteHttpTimeout(timeoutMs) ?? 2000);
+      return await isBrowserExtReachable(profile.cdpUrl, resolveRemoteHttpTimeout(timeoutMs) ?? 2000);
     }
     const httpTimeout = resolveRemoteHttpTimeout(timeoutMs);
     return await isChromeReachable(profile.cdpUrl, httpTimeout);
@@ -315,10 +319,10 @@ function createProfileContext(
     }
 
     if (isExtension) {
-      // TabHR browser extension uses JSON envelope API at profile.cdpUrl (e.g. :9220); no CDP.
+      // Browser extension uses JSON envelope API at profile.cdpUrl (e.g. :9220); no CDP.
       if (!httpReachable) {
         throw new Error(
-          `TabHR browser extension for profile "${profile.name}" is not reachable at ${profile.cdpUrl}. Ensure the TabHR extension is running on that port.`,
+          `Browser extension for profile "${profile.name}" is not reachable at ${profile.cdpUrl}. Ensure the extension is running on that port.`,
         );
       }
       return;
@@ -392,7 +396,7 @@ function createProfileContext(
       if (profile.driver === "extension") {
         throw new Error(
           `tab not found (no tabs for profile "${profile.name}" at ${profile.cdpUrl}). ` +
-            "Ensure the TabHR browser extension is running and open a tab.",
+            "Ensure the browser extension is running and open a tab.",
         );
       }
       await openTab("about:blank");
@@ -515,7 +519,7 @@ function createProfileContext(
 
   const stopRunningBrowser = async (): Promise<{ stopped: boolean }> => {
     if (profile.driver === "extension") {
-      // TabHR uses direct CDP; we do not run a relay, so nothing to stop.
+      // Extension drives the browser directly; we do not run a relay, so nothing to stop.
       return { stopped: false };
     }
     const profileState = getProfileState();
@@ -643,7 +647,7 @@ export function createBrowserRouteContext(opts: ContextOptions): BrowserRouteCon
         try {
           const reachable =
             profile.driver === "extension"
-              ? await isTabhrReachable(profile.cdpUrl, 500)
+              ? await isBrowserExtReachable(profile.cdpUrl, 500)
               : await isChromeReachable(profile.cdpUrl, 200);
           if (reachable) {
             running = true;

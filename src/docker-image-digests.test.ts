@@ -6,7 +6,7 @@ import { parse } from "yaml";
 
 const repoRoot = resolve(fileURLToPath(new URL(".", import.meta.url)), "..");
 
-// TabHR fork: only the main Dockerfile is present.
+// Only the main Dockerfile is present.
 const DIGEST_PINNED_DOCKERFILES = ["Dockerfile"] as const;
 
 type DependabotDockerGroup = {
@@ -42,7 +42,7 @@ describe("docker base image pinning", () => {
     const dependabotPath = resolve(repoRoot, ".github/dependabot.yml");
     const raw = await readFile(dependabotPath, "utf8").catch(() => null);
     if (!raw) {
-      return; // Skip when Dependabot config is not present (e.g. TabHR fork)
+      return; // Skip when Dependabot config is not present
     }
     const config = parse(raw) as DependabotConfig;
     const dockerUpdate = config.updates?.find(

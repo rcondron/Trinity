@@ -230,10 +230,10 @@ export function createBrowserTool(opts?: {
     name: "browser",
     description: [
       "Control the browser via the browser control server (status/start/stop/profiles/tabs/open/snapshot/screenshot/actions).",
-      'Profiles: use profile="chrome" for TabHR browser extension (CDP on port 9220). Use profile="Trinity" for the isolated Trinity-managed browser.',
-      'If the user mentions the TabHR extension or browser on port 9220, use profile="chrome".',
+      'Profiles: use profile="chrome" for an external browser extension (port 9220). Use profile="Trinity" for the isolated Trinity-managed browser.',
+      'If the user mentions the browser extension or a browser on port 9220, use profile="chrome".',
       'When a node-hosted browser proxy is available, the tool may auto-route to it. Pin a node with node=<id|name> or target="node".',
-      "TabHR profile (chrome) connects to CDP at http://127.0.0.1:9220. Ensure the TabHR extension or browser is running on that port with at least one tab open.",
+      "The chrome profile connects to the browser extension at http://127.0.0.1:9220. Ensure the extension (or a browser with --remote-debugging-port=9220) is running with at least one tab open.",
       "When using refs from snapshot (e.g. e12), keep the same tab: prefer passing targetId from the snapshot response into subsequent actions (act/click/type/etc).",
       'For stable, self-resolving refs across calls, use snapshot with refs="aria" (Playwright aria-ref ids). Default refs="role" are role+name-based.',
       "Use snapshot+act for UI automation. Avoid act:wait by default; use only in exceptional cases when no reliable UI state exists.",
@@ -808,7 +808,7 @@ export function createBrowserTool(opts?: {
                 : await browserTabs(baseUrl, { profile }).catch(() => []);
               if (!tabs.length) {
                 throw new Error(
-                  "No tabs available via TabHR browser (port 9220). Ensure the TabHR extension is running and open a tab, then retry.",
+                  "No tabs available via the browser extension (port 9220). Ensure the extension is running and open a tab, then retry.",
                   { cause: err },
                 );
               }
