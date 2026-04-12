@@ -731,6 +731,14 @@ main.onboarding h2, main.page h2 {
   letter-spacing: 1px;
 }
 
+.model-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+.model-presets .btn { font-size: 12px; padding: 6px 12px; }
+
 /* Responsive */
 @media (max-width: 860px) {
   .stepper { grid-template-columns: repeat(4, 1fr); }

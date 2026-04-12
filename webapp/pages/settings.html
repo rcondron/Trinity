@@ -177,6 +177,91 @@
       </form>
     </section>
 
+    <!-- ======================== BRAIN MODEL CONFIG ======================== -->
+    <section class="settings-section" id="sec-brain-model">
+      <h3 class="section-title">Brain Model Configuration</h3>
+      <p class="lead">
+        The Trinity Brain uses a local LLM for NER, significance scoring, semantic extraction,
+        and reflection. It also uses an embedding model for vector search. You can run these via
+        <strong>Ollama</strong> (default, easiest) or <strong>llama.cpp</strong> (lighter, faster cold start).
+      </p>
+
+      <div class="callout info">
+        <strong>Ollama vs llama.cpp.</strong>
+        <b>Ollama</b> manages model downloads and serves them behind a simple API &mdash;
+        recommended if you want things to just work.
+        <b>llama.cpp</b> loads a single GGUF file directly, uses less RAM with quantized models
+        (Q4_K_M), and starts instantly &mdash; better for resource-constrained hosts.
+        Both expose a compatible API; you can switch at any time.
+      </div>
+
+      <form class="settings-form" id="brain-model-form" onsubmit="return Settings.saveBrainModel(event)">
+        <div class="form-grid">
+          <label>
+            LLM backend
+            <select id="bm-backend" onchange="Settings.showLlmBackendHint()">
+              <option value="ollama">Ollama</option>
+              <option value="openai">llama.cpp / OpenAI-compatible</option>
+            </select>
+          </label>
+
+          <label>
+            LLM server URL
+            <input type="text" id="bm-url" placeholder="http://trinity-llm:11434" />
+          </label>
+
+          <label>
+            Generation model <small class="hint">(NER, reflection, scoring)</small>
+            <input type="text" id="bm-gen-model" placeholder="qwen2.5:7b" />
+          </label>
+
+          <label>
+            Embedding model
+            <input type="text" id="bm-embed-model" placeholder="nomic-embed-text" />
+          </label>
+
+          <label>
+            Embedding dimension
+            <input type="number" id="bm-embed-dim" value="768" min="64" max="4096" />
+          </label>
+
+          <label>
+            Compression model <small class="hint">(memory compression)</small>
+            <input type="text" id="bm-compress-model" placeholder="qwen2.5:7b" />
+          </label>
+        </div>
+
+        <div id="bm-hint" class="callout" style="display:none; margin-top:14px;"></div>
+
+        <h4 style="margin-top:18px; color:var(--accent-2);">Recommended model combinations</h4>
+        <div class="model-presets">
+          <button type="button" class="btn ghost" onclick="Settings.applyModelPreset('ollama-qwen')">
+            Ollama + Qwen 2.5 7B
+          </button>
+          <button type="button" class="btn ghost" onclick="Settings.applyModelPreset('ollama-qwen-14b')">
+            Ollama + Qwen 2.5 14B
+          </button>
+          <button type="button" class="btn ghost" onclick="Settings.applyModelPreset('ollama-llama3')">
+            Ollama + Llama 3.1 8B
+          </button>
+          <button type="button" class="btn ghost" onclick="Settings.applyModelPreset('ollama-phi4')">
+            Ollama + Phi-4
+          </button>
+          <button type="button" class="btn ghost" onclick="Settings.applyModelPreset('llamacpp-qwen')">
+            llama.cpp + Qwen 2.5 7B Q4
+          </button>
+          <button type="button" class="btn ghost" onclick="Settings.applyModelPreset('llamacpp-llama3')">
+            llama.cpp + Llama 3.1 8B Q4
+          </button>
+        </div>
+
+        <div class="actions" style="justify-content:flex-start; margin-top:18px;">
+          <button type="submit" class="btn primary">Save brain model config</button>
+          <span id="brain-model-status" class="status-pill">unchanged</span>
+        </div>
+      </form>
+    </section>
+
     <!-- ======================== BACKUP CONFIGURATION ======================== -->
     <section class="settings-section" id="sec-backup">
       <h3 class="section-title">Brain Backup</h3>

@@ -103,6 +103,10 @@
     runBackup()                { return this._request("POST", "/backup/run"); }
     backupHistory()            { return this._request("GET",  "/backup/history"); }
 
+    // ---- Brain model management ----
+    getBrainModel()            { return this._request("GET",  "/brain/model"); }
+    saveBrainModel(cfg)        { return this._request("POST", "/brain/model", cfg); }
+
     // ---- Lifecycle control ----
     startAgent()         { return this._request("POST", "/agent/start"); }
     stopAgent()          { return this._request("POST", "/agent/stop"); }

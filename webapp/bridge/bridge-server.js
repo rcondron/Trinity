@@ -336,6 +336,21 @@ function createServer(cfg, token, trinity, brain) {
     return brain.evolveSkill(params.id, body);
   });
 
+  // ---- Brain model management (relayed to trinity-brain /v2/model) ----------
+
+  route("GET", "/brain/model", async (req) => {
+    requireAuth(req);
+    try { return await brain.getModelConfig(); }
+    catch (e) { audit("brain.model.fail", { err: e.message }); throw e; }
+  });
+
+  route("POST", "/brain/model", async (req) => {
+    requireAuth(req);
+    const body = await readBody(req) || {};
+    audit("brain.model.update", Object.keys(body));
+    return brain.updateModelConfig(body);
+  });
+
   // ---- Settings / config ----
   route("GET", "/config", async (req) => {
     requireAuth(req);

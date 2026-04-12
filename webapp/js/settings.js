@@ -75,6 +75,20 @@
     }
 
     loadBackupHistory();
+
+    // Brain model config
+    try {
+      const bm = await Bridge.getBrainModel();
+      if (bm.llm_backend)      el("bm-backend").value        = bm.llm_backend;
+      if (bm.llm_url)          el("bm-url").value             = bm.llm_url;
+      if (bm.generation_model) el("bm-gen-model").value       = bm.generation_model;
+      if (bm.embedding_model)  el("bm-embed-model").value     = bm.embedding_model;
+      if (bm.embedding_dim)    el("bm-embed-dim").value       = bm.embedding_dim;
+      if (bm.compression_model)el("bm-compress-model").value  = bm.compression_model;
+      showLlmBackendHint();
+    } catch (e) {
+      console.warn("Could not load brain model config:", e.message);
+    }
   }
 
   // ======== Save agent settings ========
@@ -216,6 +230,86 @@
     }
   }
 
+  // ======== Brain model ========
+  function showLlmBackendHint() {
+    const backend = el("bm-backend").value;
+    const hint = el("bm-hint");
+    if (!hint) return;
+    if (backend === "openai") {
+      hint.style.display = "block";
+      hint.className = "callout info";
+      hint.innerHTML =
+        '<strong>llama.cpp / OpenAI-compatible mode.</strong> ' +
+        'Make sure the server URL points to the llama.cpp <code>--port</code> (default 8080). ' +
+        'The brain uses <code>/v1/chat/completions</code> and <code>/v1/embeddings</code>. ' +
+        'Start the compose with <code>TRINITY_LLM=llamacpp docker compose up -d</code> or ' +
+        'point to any OpenAI-compatible endpoint.';
+    } else {
+      hint.style.display = "none";
+    }
+  }
+
+  async function saveBrainModel(ev) {
+    ev.preventDefault();
+    setPill("brain-model-status", "saving…");
+    try {
+      await Bridge.saveBrainModel({
+        llm_backend:       el("bm-backend").value,
+        llm_url:           el("bm-url").value.trim() || undefined,
+        generation_model:  el("bm-gen-model").value.trim() || undefined,
+        embedding_model:   el("bm-embed-model").value.trim() || undefined,
+        embedding_dim:     parseInt(el("bm-embed-dim").value, 10) || 768,
+        compression_model: el("bm-compress-model").value.trim() || undefined,
+      });
+      setPill("brain-model-status", "saved — restart brain container to apply", "ok");
+    } catch (e) {
+      setPill("brain-model-status", e.message, "err");
+    }
+    return false;
+  }
+
+  const MODEL_PRESETS = {
+    "ollama-qwen": {
+      backend: "ollama", url: "http://trinity-llm:11434",
+      gen: "qwen2.5:7b", embed: "nomic-embed-text", dim: 768, compress: "qwen2.5:7b",
+    },
+    "ollama-qwen-14b": {
+      backend: "ollama", url: "http://trinity-llm:11434",
+      gen: "qwen2.5:14b", embed: "nomic-embed-text", dim: 768, compress: "qwen2.5:14b",
+    },
+    "ollama-llama3": {
+      backend: "ollama", url: "http://trinity-llm:11434",
+      gen: "llama3.1:8b", embed: "nomic-embed-text", dim: 768, compress: "llama3.1:8b",
+    },
+    "ollama-phi4": {
+      backend: "ollama", url: "http://trinity-llm:11434",
+      gen: "phi4:latest", embed: "nomic-embed-text", dim: 768, compress: "phi4:latest",
+    },
+    "llamacpp-qwen": {
+      backend: "openai", url: "http://trinity-llm:8080",
+      gen: "qwen2.5-7b-instruct-q4_k_m", embed: "qwen2.5-7b-instruct-q4_k_m", dim: 768,
+      compress: "qwen2.5-7b-instruct-q4_k_m",
+    },
+    "llamacpp-llama3": {
+      backend: "openai", url: "http://trinity-llm:8080",
+      gen: "llama-3.1-8b-instruct-q4_k_m", embed: "llama-3.1-8b-instruct-q4_k_m", dim: 768,
+      compress: "llama-3.1-8b-instruct-q4_k_m",
+    },
+  };
+
+  function applyModelPreset(name) {
+    const p = MODEL_PRESETS[name];
+    if (!p) return;
+    el("bm-backend").value      = p.backend;
+    el("bm-url").value           = p.url;
+    el("bm-gen-model").value     = p.gen;
+    el("bm-embed-model").value   = p.embed;
+    el("bm-embed-dim").value     = p.dim;
+    el("bm-compress-model").value= p.compress;
+    showLlmBackendHint();
+    setPill("brain-model-status", "preset applied — click save", "warn");
+  }
+
   // ======== Init ========
   document.addEventListener("DOMContentLoaded", () => {
     load();
@@ -225,6 +319,7 @@
     saveAgent, saveKeys, saveUrls,
     saveBackup, runBackupNow,
     showProviderFields,
+    saveBrainModel, showLlmBackendHint, applyModelPreset,
     load,
   };
 })(window);

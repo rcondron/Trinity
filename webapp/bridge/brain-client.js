@@ -105,6 +105,14 @@ class BrainClient {
 
   // Liveness check for the brain container.
   status() { return this._request("GET", "/v2/status"); }
+
+  // ---- Model configuration ----
+
+  // Get the brain's current model config (backend, embedding model, generation model, etc.)
+  getModelConfig() { return this._request("GET", "/v2/model/config"); }
+
+  // Update model config. Persists to the brain's config.json and reloads in-memory.
+  updateModelConfig(cfg) { return this._request("POST", "/v2/model/config", cfg); }
 }
 
 module.exports = BrainClient;
