@@ -246,24 +246,28 @@ async function waitForOllamaInit(composeFile: string, runtime: RuntimeEnv): Prom
 }
 
 async function waitForHealthChecks(runtime: RuntimeEnv, port: number): Promise<boolean> {
+  // Use the persistent BrainClient for health checks too — avoids orphaned sockets.
+  const { BrainClient } = await import("../brain/client.js");
+  const client = new BrainClient({ baseUrl: `http://localhost:${port}` });
   let attempts = 0;
   const maxAttempts = 30; // 5 minutes max
-  
+
   while (attempts < maxAttempts) {
     try {
-      const response = await fetch(`http://localhost:${port}/health`);
-      if (response.ok) {
-        runtime.log("✅ Brain API is healthy");
-        return true;
-      }
+      await client.health();
+      runtime.log("✅ Brain API is healthy");
+      client.close();
+      return true;
     } catch {
       // Continue waiting
     }
-    
+
     runtime.log(`  Checking health... (${attempts + 1}/${maxAttempts})`);
     await sleep(10000); // Wait 10 seconds
     attempts++;
   }
+
+  client.close();
   
   return false;
 }

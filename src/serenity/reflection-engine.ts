@@ -31,6 +31,7 @@ import { InsightGenerator } from "./insight-generator.js";
 import type { SerenityConfig, ToolCallMetric, Insight, SkillPattern } from "./types.js";
 import { join } from "node:path";
 import { existsSync, mkdirSync, writeFileSync, readFileSync } from "node:fs";
+import { getBrainClient, type BrainClient } from "../brain/client.js";
 
 export interface ReflectionCycleResult {
   insights: Insight[];
@@ -56,7 +57,7 @@ export class ReflectionEngine {
   private tracker: SkillTracker;
   private creator: SkillCreator;
   private insightGen: InsightGenerator;
-  private brainApiUrl: string;
+  private brain: BrainClient;
   private workspaceDir: string;
   private evolutionHistory: any[] = [];
 
@@ -66,7 +67,8 @@ export class ReflectionEngine {
     workspaceDir = "./workspace"
   ) {
     this.config = config;
-    this.brainApiUrl = brainApiUrl;
+    // Use the singleton persistent brain client instead of per-request fetch().
+    this.brain = getBrainClient({ baseUrl: brainApiUrl });
     this.workspaceDir = workspaceDir;
     this.tracker = new SkillTracker(config.dataDir || join(workspaceDir, ".Serenity"), config.metricsRetentionDays);
     this.creator = new SkillCreator(join(workspaceDir, "skills"), config.minPatternOccurrences, config.minPatternSuccessRate);
@@ -196,15 +198,13 @@ export class ReflectionEngine {
 
   private async detectAndResolveContradictions(): Promise<number> {
     try {
-      // Call brain-api for contradictions (lex-brain compatible)
-      const response = await fetch(`${this.brainApiUrl}/contradictions`);
-      const data = await response.json();
+      // Uses the persistent BrainClient — single keep-alive socket, no per-request connections.
+      const data = await this.brain.contradictions() as { contradictions?: unknown[] };
       const count = data.contradictions?.length || 0;
-      
+
       if (count > 0) {
         console.log(`[Serenity] Detected ${count} contradictions. Triggering resolution via brain reindex.`);
-        await fetch(`${this.brainApiUrl}/reindex`, { method: "POST" });
-        // Log as belief update
+        await this.brain.post("/reindex");
         await this.ingestToBrain(`Resolved ${count} contradictions in Serenity reflection cycle`, "Serenity", "belief");
       }
       return count;
@@ -314,13 +314,9 @@ export class ReflectionEngine {
 
   private async ingestToBrain(content: string, kind: string = "semantic", domain: string = "Serenity"): Promise<void> {
     try {
-      await fetch(`${this.brainApiUrl}/ingest/manual`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content, kind, domains: [domain], source: "Serenity-reflection" })
-      });
-    } catch (e) {
-      // Silent fallback - brain not always required for core function
+      await this.brain.ingestManual(content, { source: "Serenity-reflection", domains: [domain] });
+    } catch {
+      // Silent fallback — brain not always required for core function.
     }
   }
 
