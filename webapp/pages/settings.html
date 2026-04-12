@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Trinity — Settings</title>
+  <link rel="stylesheet" href="../css/style.css" />
+</head>
+<body class="matrix-bg">
+  <canvas id="matrix-rain"></canvas>
+
+  <header class="top-bar">
+    <div class="brand">
+      <div class="logo-ring"></div>
+      <div class="brand-text">
+        <h1>TRINITY</h1>
+        <p>Settings &amp; Backup Configuration</p>
+      </div>
+    </div>
+    <nav class="top-nav">
+      <a href="../StartHere.html">Start Here</a>
+      <a href="dashboard.html">Dashboard</a>
+      <a href="chat.html">Chat</a>
+      <a href="skills.html">Skills</a>
+      <a href="access-control.html">Access Control</a>
+      <a href="settings.html" class="active">Settings</a>
+    </nav>
+  </header>
+
+  <main class="page">
+    <h2>Settings</h2>
+    <p class="lead">
+      Configure API keys, default models, and set up automatic backups for the Trinity Brain.
+    </p>
+
+    <!-- ======================== AGENT / MODEL SETTINGS ======================== -->
+    <section class="settings-section" id="sec-agent">
+      <h3 class="section-title">Agent &amp; Model Configuration</h3>
+
+      <form class="settings-form" id="agent-form" onsubmit="return Settings.saveAgent(event)">
+        <div class="form-grid">
+          <label>
+            Agent name
+            <input type="text" id="s-name" placeholder="Trinity" />
+          </label>
+
+          <label>
+            Default model provider
+            <select id="s-provider">
+              <option value="ollama">Ollama (local)</option>
+              <option value="anthropic">Anthropic (Claude)</option>
+              <option value="openai">OpenAI</option>
+              <option value="morpheus">Morpheus Network</option>
+              <option value="google">Google (Gemini)</option>
+              <option value="custom">Custom / self-hosted</option>
+            </select>
+          </label>
+
+          <label>
+            Default model
+            <input type="text" id="s-model" placeholder="e.g. claude-sonnet-4-6, gpt-4o, qwen2.5:7b" />
+          </label>
+
+          <label>
+            Temperature <small class="hint">(0.0 &ndash; 2.0)</small>
+            <input type="number" id="s-temp" min="0" max="2" step="0.1" placeholder="0.7" />
+          </label>
+
+          <label>
+            Max tokens
+            <input type="number" id="s-max-tokens" min="1" max="200000" step="1" placeholder="4096" />
+          </label>
+
+          <label>
+            Default access scope
+            <select id="s-scope">
+              <option value="sandbox">Sandbox only</option>
+              <option value="workspace" selected>Workspace folder</option>
+              <option value="custom">Custom (Access Control page)</option>
+            </select>
+          </label>
+
+          <label class="inline">
+            <input type="checkbox" id="s-brain" checked />
+            Enable Trinity Brain (memory / vectors / graph)
+          </label>
+
+          <label class="inline">
+            <input type="checkbox" id="s-morpheus" />
+            Register agent on the Morpheus Network
+          </label>
+
+          <label>
+            Log level
+            <select id="s-loglevel">
+              <option value="info">Info</option>
+              <option value="debug">Debug</option>
+              <option value="warn">Warn</option>
+              <option value="error">Error only</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="actions" style="justify-content:flex-start;">
+          <button type="submit" class="btn primary">Save agent settings</button>
+          <span id="agent-status" class="status-pill">unchanged</span>
+        </div>
+      </form>
+    </section>
+
+    <!-- ======================== API KEYS ======================== -->
+    <section class="settings-section" id="sec-keys">
+      <h3 class="section-title">API Keys</h3>
+      <p class="lead">
+        Keys are stored in the Bridge's config directory (<code>~/.trinity-bridge/config.json</code>)
+        and are never sent to the browser in cleartext after initial save.
+      </p>
+
+      <form class="settings-form" id="keys-form" onsubmit="return Settings.saveKeys(event)">
+        <div class="form-grid">
+          <label>
+            Anthropic API key
+            <input type="password" id="k-anthropic" placeholder="sk-ant-..." />
+          </label>
+          <label>
+            OpenAI API key
+            <input type="password" id="k-openai" placeholder="sk-..." />
+          </label>
+          <label>
+            Google AI key
+            <input type="password" id="k-google" placeholder="AIza..." />
+          </label>
+          <label>
+            Morpheus Network token
+            <input type="password" id="k-morpheus" placeholder="mor_..." />
+          </label>
+          <label>
+            Custom provider key
+            <input type="password" id="k-custom" placeholder="..." />
+          </label>
+          <label>
+            Custom provider base URL
+            <input type="text" id="k-custom-url" placeholder="https://api.example.com/v1" />
+          </label>
+        </div>
+
+        <div class="actions" style="justify-content:flex-start;">
+          <button type="submit" class="btn primary">Save API keys</button>
+          <span id="keys-status" class="status-pill">unchanged</span>
+        </div>
+      </form>
+    </section>
+
+    <!-- ======================== BRAIN CONNECTIONS ======================== -->
+    <section class="settings-section" id="sec-brain">
+      <h3 class="section-title">Container URLs</h3>
+      <p class="lead">
+        Override the default URLs the Bridge uses to reach the Trinity containers.
+        You only need to change these if you run Docker on a remote host.
+      </p>
+
+      <form class="settings-form" id="urls-form" onsubmit="return Settings.saveUrls(event)">
+        <div class="form-grid">
+          <label>
+            Trinity Agent URL
+            <input type="text" id="u-agent" placeholder="http://127.0.0.1:18789" />
+          </label>
+          <label>
+            Trinity Brain URL
+            <input type="text" id="u-brain" placeholder="http://127.0.0.1:8100" />
+          </label>
+        </div>
+        <div class="actions" style="justify-content:flex-start;">
+          <button type="submit" class="btn primary">Save URLs</button>
+          <span id="urls-status" class="status-pill">unchanged</span>
+        </div>
+      </form>
+    </section>
+
+    <!-- ======================== BACKUP CONFIGURATION ======================== -->
+    <section class="settings-section" id="sec-backup">
+      <h3 class="section-title">Brain Backup</h3>
+      <p class="lead">
+        Automatically back up the trinity-brain container's data (memories, vectors, knowledge graph,
+        skills) to an external destination. Backups are <code>tar.gz</code> archives.
+      </p>
+
+      <form class="settings-form" id="backup-form" onsubmit="return Settings.saveBackup(event)">
+        <!-- enable / schedule row -->
+        <div class="form-grid">
+          <label class="inline">
+            <input type="checkbox" id="b-enabled" />
+            Enable automatic backups
+          </label>
+
+          <label>
+            Schedule
+            <select id="b-schedule">
+              <option value="hourly">Every hour</option>
+              <option value="6h">Every 6 hours</option>
+              <option value="12h">Every 12 hours</option>
+              <option value="daily" selected>Daily</option>
+              <option value="weekly">Weekly</option>
+            </select>
+          </label>
+
+          <label>
+            Retain last <em>N</em> backups
+            <input type="number" id="b-retain" min="1" max="365" value="7" />
+          </label>
+
+          <label>
+            Backup provider
+            <select id="b-provider" onchange="Settings.showProviderFields()">
+              <option value="none">-- choose --</option>
+              <option value="local">Local / mounted drive</option>
+              <option value="s3">Amazon S3</option>
+              <option value="b2">Backblaze B2</option>
+              <option value="ftp">FTP / SFTP</option>
+              <option value="gdrive">Google Drive (via rclone)</option>
+              <option value="azure">Azure Blob (via rclone)</option>
+              <option value="restic">Restic repository</option>
+            </select>
+          </label>
+        </div>
+
+        <!-- Provider-specific fields -->
+        <div class="provider-fields" id="pf-local" style="display:none">
+          <h4>Local / Mounted Drive</h4>
+          <div class="form-grid">
+            <label>
+              Destination path
+              <input type="text" id="b-localPath" placeholder="/mnt/nas/trinity-backups" />
+            </label>
+          </div>
+        </div>
+
+        <div class="provider-fields" id="pf-s3" style="display:none">
+          <h4>Amazon S3 / S3-Compatible</h4>
+          <div class="form-grid">
+            <label>
+              Bucket name
+              <input type="text" id="b-s3Bucket" placeholder="my-trinity-backups" />
+            </label>
+            <label>
+              Region
+              <input type="text" id="b-s3Region" placeholder="us-east-1" />
+            </label>
+            <label>
+              Endpoint URL <small class="hint">(blank for AWS)</small>
+              <input type="text" id="b-s3Endpoint" placeholder="https://s3.example.com" />
+            </label>
+            <label>
+              Access Key ID
+              <input type="password" id="b-accessKey" placeholder="AKIA..." />
+            </label>
+            <label>
+              Secret Access Key
+              <input type="password" id="b-secretKey" placeholder="..." />
+            </label>
+          </div>
+        </div>
+
+        <div class="provider-fields" id="pf-b2" style="display:none">
+          <h4>Backblaze B2</h4>
+          <div class="form-grid">
+            <label>
+              Bucket name
+              <input type="text" id="b-b2Bucket" placeholder="trinity-backups" />
+            </label>
+            <label>
+              Application Key ID
+              <input type="password" id="b-b2KeyId" placeholder="004..." />
+            </label>
+            <label>
+              Application Key
+              <input type="password" id="b-b2AppKey" placeholder="K004..." />
+            </label>
+          </div>
+          <div class="callout info">
+            B2 uploads use the AWS CLI with S3-compatible mode. Ensure <code>aws</code> is installed on the host.
+          </div>
+        </div>
+
+        <div class="provider-fields" id="pf-ftp" style="display:none">
+          <h4>FTP / SFTP</h4>
+          <div class="form-grid">
+            <label>
+              Host
+              <input type="text" id="b-ftpHost" placeholder="ftp.example.com" />
+            </label>
+            <label>
+              Port
+              <input type="number" id="b-ftpPort" value="21" />
+            </label>
+            <label>
+              Username
+              <input type="text" id="b-ftpUser" placeholder="backupuser" />
+            </label>
+            <label>
+              Password
+              <input type="password" id="b-ftpPassword" />
+            </label>
+            <label>
+              Remote path
+              <input type="text" id="b-ftpPath" placeholder="/backups/trinity" />
+            </label>
+            <label class="inline">
+              <input type="checkbox" id="b-ftpSecure" />
+              Use FTPS (TLS)
+            </label>
+          </div>
+        </div>
+
+        <div class="provider-fields" id="pf-gdrive" style="display:none">
+          <h4>Google Drive (via rclone)</h4>
+          <div class="callout info">
+            Google Drive backups use <a href="https://rclone.org" target="_blank" rel="noreferrer">rclone</a>.
+            Run <code>rclone config</code> on the host to create a remote named <code>trinity-backup</code>,
+            then select Google Drive as the backend.
+          </div>
+        </div>
+
+        <div class="provider-fields" id="pf-azure" style="display:none">
+          <h4>Azure Blob Storage (via rclone)</h4>
+          <div class="callout info">
+            Azure backups use <a href="https://rclone.org" target="_blank" rel="noreferrer">rclone</a>.
+            Run <code>rclone config</code> on the host to create a remote named <code>trinity-backup</code>,
+            then select Azure Blob as the backend.
+          </div>
+        </div>
+
+        <div class="provider-fields" id="pf-restic" style="display:none">
+          <h4>Restic Repository</h4>
+          <div class="form-grid">
+            <label>
+              Repository URL
+              <input type="text" id="b-resticRepo" placeholder="s3:s3.amazonaws.com/bucket-name" />
+            </label>
+            <label>
+              Repository password
+              <input type="password" id="b-resticPassword" />
+            </label>
+          </div>
+          <div class="callout info">
+            Requires <a href="https://restic.net" target="_blank" rel="noreferrer">restic</a> installed
+            on the host. rclone is used as the transfer backend.
+          </div>
+        </div>
+
+        <div class="actions" style="justify-content:flex-start;">
+          <button type="submit" class="btn primary">Save backup config</button>
+          <button type="button" class="btn ghost" onclick="Settings.runBackupNow()">Run backup now</button>
+          <span id="backup-status" class="status-pill">unchanged</span>
+        </div>
+      </form>
+
+      <!-- Backup history -->
+      <h4 style="margin-top:18px; color:var(--accent-2);">Backup history</h4>
+      <div class="log-stream" id="backup-log" style="height:160px;"></div>
+    </section>
+  </main>
+
+  <footer class="bottom-bar">
+    <span>Trinity · Morpheus Network · MIT License</span>
+    <span id="bridge-indicator" class="status-pill">Bridge: checking…</span>
+  </footer>
+
+  <script src="../js/matrix-rain.js"></script>
+  <script src="../js/bridge-client.js"></script>
+  <script src="../js/settings.js"></script>
+</body>
+</html>

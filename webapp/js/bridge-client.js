@@ -93,9 +93,15 @@
     // ---- Audit log ----
     log(limit = 100)     { return this._request("GET", "/log?limit=" + limit); }
 
-    // ---- Agent config ----
+    // ---- Agent config / settings ----
     saveConfig(cfg)      { return this._request("POST", "/config", cfg); }
     getConfig()          { return this._request("GET",  "/config"); }
+
+    // ---- Backup ----
+    getBackupConfig()          { return this._request("GET",  "/backup/config"); }
+    saveBackupConfig(cfg)      { return this._request("POST", "/backup/config", cfg); }
+    runBackup()                { return this._request("POST", "/backup/run"); }
+    backupHistory()            { return this._request("GET",  "/backup/history"); }
 
     // ---- Lifecycle control ----
     startAgent()         { return this._request("POST", "/agent/start"); }
