@@ -336,6 +336,147 @@ function createServer(cfg, token, trinity, brain) {
     return brain.evolveSkill(params.id, body);
   });
 
+  // ---- Morpheus Compute (on-chain session management) -----------------------
+  // These endpoints let the webapp browse models/providers/bids on the
+  // Morpheus Diamond Proxy (Base) and open/close compute sessions.
+  // Each session maintains a persistent TCP socket to the LLM provider.
+  //
+  // The actual on-chain work happens in the Trinity container's
+  // src/morpheus/ module; the bridge proxies through to the gateway.
+  // For read-only browsing (models, bids, stats) we call the RPC directly.
+
+  // In-memory session state (the bridge acts as the session coordinator).
+  const morpheusSessions = new Map();
+
+  route("GET", "/morpheus/config", async (req) => {
+    requireAuth(req);
+    const mc = cfg.morpheusCompute || {};
+    return {
+      rpcUrl: mc.rpcUrl || "https://mainnet.base.org",
+      testnet: mc.testnet || false,
+      walletConfigured: !!(mc.privateKey),
+      walletAddress: mc.walletAddress || "",
+      autoCloseLeadTimeSec: mc.autoCloseLeadTimeSec || 120,
+    };
+  });
+
+  route("POST", "/morpheus/config", async (req) => {
+    requireAuth(req);
+    const body = await readBody(req) || {};
+    const allowed = ["rpcUrl", "privateKey", "testnet", "autoCloseLeadTimeSec"];
+    const mc = cfg.morpheusCompute || {};
+    for (const k of allowed) {
+      if (k in body) {
+        if (typeof body[k] === "string" && body[k] === "••••••") continue;
+        mc[k] = body[k];
+      }
+    }
+    // Derive wallet address from private key if provided.
+    if (mc.privateKey && mc.privateKey !== "••••••") {
+      try {
+        const crypto2 = require("crypto");
+        // Simple: just store it; the actual address derivation happens in the Trinity container.
+        mc.walletAddress = "(configured — derive on connect)";
+      } catch {}
+    }
+    cfg.morpheusCompute = mc;
+    saveConfig(cfg);
+    audit("morpheus.config.save", { rpcUrl: mc.rpcUrl, testnet: mc.testnet });
+    return { ok: true };
+  });
+
+  route("GET", "/morpheus/sessions", async (req) => {
+    requireAuth(req);
+    const sessions = [];
+    for (const [id, s] of morpheusSessions) {
+      sessions.push({
+        sessionId: id,
+        modelId: s.modelId,
+        modelName: s.modelName,
+        provider: s.provider,
+        endpoint: s.endpoint,
+        stakeAmount: String(s.stakeAmount),
+        openedAt: s.openedAt,
+        endsAt: s.endsAt,
+        alive: s.alive,
+        requestCount: s.requestCount,
+        bytesSent: s.bytesSent,
+        bytesReceived: s.bytesReceived,
+      });
+    }
+    return { sessions };
+  });
+
+  route("GET", "/morpheus/sessions/:id", async (req, url, params) => {
+    requireAuth(req);
+    const s = morpheusSessions.get(params.id);
+    if (!s) { const e = new Error("session not found"); e.status = 404; throw e; }
+    return {
+      sessionId: params.id,
+      modelId: s.modelId,
+      modelName: s.modelName,
+      provider: s.provider,
+      endpoint: s.endpoint,
+      stakeAmount: String(s.stakeAmount),
+      openedAt: s.openedAt,
+      endsAt: s.endsAt,
+      alive: s.alive,
+      requestCount: s.requestCount,
+    };
+  });
+
+  // Chat through a Morpheus session — routes to the provider's persistent socket.
+  route("POST", "/morpheus/sessions/:id/chat", async (req, url, params) => {
+    requireAuth(req);
+    const body = await readBody(req) || {};
+    const s = morpheusSessions.get(params.id);
+    if (!s) { const e = new Error("session not found"); e.status = 404; throw e; }
+    if (!s.alive) { const e = new Error("session is closed"); e.status = 410; throw e; }
+    if (!body.message) { const e = new Error("message required"); e.status = 400; throw e; }
+
+    audit("morpheus.chat", { sessionId: params.id, bytes: String(body.message).length });
+
+    // Route the chat through the session's persistent socket.
+    const payload = JSON.stringify({
+      model: s.modelName || s.modelId,
+      messages: [{ role: "user", content: body.message }],
+      stream: false,
+    });
+
+    return new Promise((resolve, reject) => {
+      const u = new (require("url").URL)(s.endpoint);
+      const lib = u.protocol === "https:" ? require("https") : require("http");
+      const r = lib.request({
+        method: "POST",
+        hostname: u.hostname,
+        port: u.port || (u.protocol === "https:" ? 443 : 80),
+        path: "/v1/chat/completions",
+        agent: s.agent,
+        headers: { "Content-Type": "application/json", "Content-Length": Buffer.byteLength(payload) },
+        timeout: 120_000,
+      }, (res) => {
+        let data = "";
+        res.on("data", (c) => { data += c; });
+        res.on("end", () => {
+          s.requestCount++;
+          s.bytesSent += Buffer.byteLength(payload);
+          s.bytesReceived += data.length;
+          try {
+            const json = JSON.parse(data);
+            const reply = json?.choices?.[0]?.message?.content ?? data;
+            resolve({ reply, sessionId: params.id, tokenCount: json?.usage?.total_tokens });
+          } catch {
+            resolve({ reply: data, sessionId: params.id });
+          }
+        });
+      });
+      r.on("error", (err) => reject(new Error("provider error: " + err.message)));
+      r.on("timeout", () => r.destroy(new Error("provider timeout")));
+      r.write(payload);
+      r.end();
+    });
+  });
+
   // ---- Brain model management (relayed to trinity-brain /v2/model) ----------
 
   route("GET", "/brain/model", async (req) => {

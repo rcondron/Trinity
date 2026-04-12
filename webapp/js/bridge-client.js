@@ -107,6 +107,13 @@
     getBrainModel()            { return this._request("GET",  "/brain/model"); }
     saveBrainModel(cfg)        { return this._request("POST", "/brain/model", cfg); }
 
+    // ---- Morpheus Compute ----
+    getMorpheusConfig()        { return this._request("GET",  "/morpheus/config"); }
+    saveMorpheusConfig(cfg)    { return this._request("POST", "/morpheus/config", cfg); }
+    listMorpheusSessions()     { return this._request("GET",  "/morpheus/sessions"); }
+    getMorpheusSession(id)     { return this._request("GET",  "/morpheus/sessions/" + id); }
+    morpheusChat(id, message)  { return this._request("POST", "/morpheus/sessions/" + id + "/chat", { message }); }
+
     // ---- Lifecycle control ----
     startAgent()         { return this._request("POST", "/agent/start"); }
     stopAgent()          { return this._request("POST", "/agent/stop"); }
