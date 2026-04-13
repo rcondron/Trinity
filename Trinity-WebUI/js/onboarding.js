@@ -1,4 +1,4 @@
-// Onboarding flow controller for StartHere.html
+// Onboarding flow controller for Setup.html
 (function (global) {
   const TOTAL_STEPS = 8;
   const STATE_KEY = "trinity.onboarding.state";
