@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Trinity — Start Here</title>
+  <link rel="stylesheet" href="Trinity-WebUI/css/style.css" />
+</head>
+<body class="matrix-bg">
+  <canvas id="matrix-rain"></canvas>
+
+  <header class="top-bar">
+    <div class="brand">
+      <div class="logo-ring"></div>
+      <div class="brand-text">
+        <h1>TRINITY</h1>
+        <p>Decentralized Open-Source AI Agent &nbsp;·&nbsp; by Morpheus</p>
+      </div>
+    </div>
+  </header>
+
+  <main class="page" style="text-align:center; margin-top:60px;">
+    <h2>Welcome to Trinity</h2>
+    <p class="lead" style="max-width:600px; margin:16px auto;">
+      Trinity is a decentralized AI agent for the Morpheus Network.
+      Choose where you'd like to go:
+    </p>
+
+    <div class="next-steps" style="max-width:800px; margin:32px auto;">
+      <a class="card-link" href="Trinity-WebUI/StartHere.html">
+        <h3>Onboarding Wizard &rarr;</h3>
+        <p>First-time setup: install Docker, spin up containers, configure the agent, create your wallet.</p>
+      </a>
+      <a class="card-link" href="Trinity-WebUI/pages/dashboard.html">
+        <h3>Dashboard &rarr;</h3>
+        <p>Command &amp; control center. Monitor containers, gateway, brain, and Morpheus sessions.</p>
+      </a>
+      <a class="card-link" href="Trinity-WebUI/pages/chat.html">
+        <h3>Chat with Trinity &rarr;</h3>
+        <p>Talk to the agent through the Bridge. Messages route via WebSocket RPC to the gateway.</p>
+      </a>
+      <a class="card-link" href="Trinity-WebUI/pages/settings.html">
+        <h3>Settings &rarr;</h3>
+        <p>API keys, model config, brain backup, Morpheus compute, wallet management.</p>
+      </a>
+      <a class="card-link" href="Trinity-WebUI/pages/skills.html">
+        <h3>Skills &rarr;</h3>
+        <p>Browse and teach Trinity skills. Stored in the Brain, evolved through use.</p>
+      </a>
+      <a class="card-link" href="Trinity-Tests/TestSuite.html">
+        <h3>Test Suite &rarr;</h3>
+        <p>Run unit, e2e, gateway, and extension tests. View results in the browser.</p>
+      </a>
+    </div>
+
+    <h3 style="margin-top:40px; color:var(--accent-2);">Project Structure</h3>
+    <pre style="text-align:left; max-width:600px; margin:12px auto;"><code>Trinity-Test/
+├── StartHere.html          ← you are here
+├── README.md               ← project docs
+├── Trinity-Agent/          ← gateway, src, extensions, Docker
+├── Trinity-Brain/          ← Python FastAPI memory service
+├── Trinity-Bridge/         ← host-side security gatekeeper
+├── Trinity-WebUI/          ← browser UI (chat, dashboard, settings)
+└── Trinity-Tests/          ← test suite + TestSuite.html runner</code></pre>
+  </main>
+
+  <footer class="bottom-bar">
+    <span>Trinity · Morpheus Network · MIT License</span>
+  </footer>
+
+  <script src="Trinity-WebUI/js/matrix-rain.js"></script>
+</body>
+</html>

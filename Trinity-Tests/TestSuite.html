@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Trinity — Test Suite</title>
+  <link rel="stylesheet" href="../Trinity-WebUI/css/style.css" />
+</head>
+<body class="matrix-bg">
+  <canvas id="matrix-rain"></canvas>
+
+  <header class="top-bar">
+    <div class="brand">
+      <div class="logo-ring"></div>
+      <div class="brand-text">
+        <h1>TRINITY</h1>
+        <p>Test Suite Runner</p>
+      </div>
+    </div>
+    <nav class="top-nav">
+      <a href="../StartHere.html">Start Here</a>
+      <a href="../Trinity-WebUI/pages/dashboard.html">Dashboard</a>
+    </nav>
+  </header>
+
+  <main class="page">
+    <h2>Test Suite</h2>
+    <p class="lead">
+      Run and monitor tests for the Trinity agent, brain, and bridge. Tests use
+      <a href="https://vitest.dev" target="_blank" rel="noreferrer">Vitest</a> and are
+      organised into suites: unit, e2e, gateway, extensions, and live.
+    </p>
+
+    <div class="dashboard-grid">
+      <div class="card">
+        <h3>Test Files</h3>
+        <div class="big-stat" id="stat-files">—</div>
+        <div class="sub">across all suites</div>
+      </div>
+      <div class="card">
+        <h3>Last Run</h3>
+        <div class="big-stat" id="stat-last">never</div>
+        <div class="sub" id="sub-last">—</div>
+      </div>
+      <div class="card">
+        <h3>Status</h3>
+        <div class="big-stat" id="stat-status">idle</div>
+        <div class="sub" id="sub-status">—</div>
+      </div>
+    </div>
+
+    <h3 style="margin-top:28px; color:var(--accent-2);">Test Suites</h3>
+    <p class="sub">Each suite runs with its own vitest config. Click to start.</p>
+
+    <div class="perm-list" id="suite-list">
+      <div class="perm-row" style="grid-template-columns: 1fr 200px 120px;">
+        <div>
+          <div class="name">Unit Tests</div>
+          <div class="path">Fast, no Docker/network. Config: vitest.unit.config.ts</div>
+        </div>
+        <div class="mode">vitest.unit</div>
+        <button class="btn primary" onclick="TestRunner.run('unit')">Run</button>
+      </div>
+      <div class="perm-row" style="grid-template-columns: 1fr 200px 120px;">
+        <div>
+          <div class="name">E2E Tests</div>
+          <div class="path">End-to-end: spawns real processes. Config: vitest.e2e.config.ts</div>
+        </div>
+        <div class="mode">vitest.e2e</div>
+        <button class="btn primary" onclick="TestRunner.run('e2e')">Run</button>
+      </div>
+      <div class="perm-row" style="grid-template-columns: 1fr 200px 120px;">
+        <div>
+          <div class="name">Gateway Tests</div>
+          <div class="path">Gateway server integration. Config: vitest.gateway.config.ts</div>
+        </div>
+        <div class="mode">vitest.gateway</div>
+        <button class="btn primary" onclick="TestRunner.run('gateway')">Run</button>
+      </div>
+      <div class="perm-row" style="grid-template-columns: 1fr 200px 120px;">
+        <div>
+          <div class="name">Extension Tests</div>
+          <div class="path">Plugin/extension tests. Config: vitest.extensions.config.ts</div>
+        </div>
+        <div class="mode">vitest.extensions</div>
+        <button class="btn primary" onclick="TestRunner.run('extensions')">Run</button>
+      </div>
+      <div class="perm-row" style="grid-template-columns: 1fr 200px 120px;">
+        <div>
+          <div class="name">Live Tests</div>
+          <div class="path">Hit real APIs (requires API keys). Config: vitest.live.config.ts</div>
+        </div>
+        <div class="mode">vitest.live</div>
+        <button class="btn primary" onclick="TestRunner.run('live')">Run</button>
+      </div>
+      <div class="perm-row" style="grid-template-columns: 1fr 200px 120px;">
+        <div>
+          <div class="name">All Tests</div>
+          <div class="path">Full suite. Config: vitest.config.ts</div>
+        </div>
+        <div class="mode">vitest (all)</div>
+        <button class="btn primary" onclick="TestRunner.run('all')">Run All</button>
+      </div>
+    </div>
+
+    <h3 style="margin-top:28px; color:var(--accent-2);">How to run from the terminal</h3>
+    <pre><code># From the project root:
+cd Trinity-Agent
+
+# Run a specific suite:
+pnpm vitest run --config ../Trinity-Tests/vitest.unit.config.ts
+
+# Run all tests:
+pnpm vitest run --config ../Trinity-Tests/vitest.config.ts
+
+# Watch mode:
+pnpm vitest --config ../Trinity-Tests/vitest.unit.config.ts</code></pre>
+
+    <h3 style="margin-top:28px; color:var(--accent-2);">Output</h3>
+    <div class="log-stream" id="test-output" style="height:400px;">
+      <div class="line">Click a suite above to start a test run.</div>
+      <div class="line">Tests execute via the Bridge (POST /tests/run).</div>
+      <div class="line">Ensure the Bridge is running and the Trinity-Agent has dependencies installed.</div>
+    </div>
+  </main>
+
+  <footer class="bottom-bar">
+    <span>Trinity · Test Suite</span>
+    <span id="bridge-indicator" class="status-pill">Bridge: checking…</span>
+  </footer>
+
+  <script src="../Trinity-WebUI/js/matrix-rain.js"></script>
+  <script src="../Trinity-WebUI/js/bridge-client.js"></script>
+  <script>
+  (function () {
+    const output = document.getElementById("test-output");
+
+    function log(text, cls) {
+      const div = document.createElement("div");
+      div.className = "line" + (cls ? " " + cls : "");
+      div.textContent = text;
+      output.appendChild(div);
+      output.scrollTop = output.scrollHeight;
+    }
+
+    const TestRunner = {
+      async run(suite) {
+        output.innerHTML = "";
+        log("[" + new Date().toISOString().slice(11, 19) + "] Starting " + suite + " tests…", "ok");
+        document.getElementById("stat-status").textContent = "running";
+        document.getElementById("sub-status").textContent = suite;
+
+        try {
+          // The bridge runs the test via docker exec or local shell.
+          const res = await Bridge._request("POST", "/tests/run", { suite });
+          log("", "");
+          if (res.stdout) {
+            res.stdout.split("\n").forEach(function (line) {
+              const cls = /FAIL/.test(line) ? "err" : /PASS/.test(line) ? "ok" : /SKIP/.test(line) ? "warn" : "";
+              log(line, cls);
+            });
+          }
+          if (res.stderr) {
+            res.stderr.split("\n").forEach(function (line) { log(line, "warn"); });
+          }
+          const passed = !res.error && (res.ok !== false);
+          document.getElementById("stat-status").textContent = passed ? "passed" : "failed";
+          document.getElementById("stat-last").textContent = new Date().toLocaleTimeString();
+          document.getElementById("sub-last").textContent = suite;
+          log("", "");
+          log(passed ? "All tests passed." : "Some tests failed. See output above.", passed ? "ok" : "err");
+        } catch (e) {
+          log("Error: " + e.message, "err");
+          log("Make sure the Bridge is running and Trinity-Agent has dependencies installed.", "warn");
+          document.getElementById("stat-status").textContent = "error";
+        }
+      },
+    };
+
+    window.TestRunner = TestRunner;
+
+    // Count test files
+    document.addEventListener("DOMContentLoaded", function () {
+      Bridge._request("POST", "/tests/count").then(function (r) {
+        document.getElementById("stat-files").textContent = r.count || "?";
+      }).catch(function () {
+        document.getElementById("stat-files").textContent = "?";
+      });
+    });
+  })();
+  </script>
+</body>
+</html>

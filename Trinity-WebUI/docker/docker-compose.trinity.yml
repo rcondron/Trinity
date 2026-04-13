@@ -1,0 +1,163 @@
+# Trinity agent + Trinity brain stack.
+#
+# This is the compose file the webapp's onboarding wizard (and the Bridge's
+# /agent/start endpoint) uses to spin up Trinity.
+#
+# Architecture:
+#   1. trinity-agent   — the isolated Trinity agent container.
+#   2. trinity-brain   — memory / vectors / graph / reflection service.
+#   3. trinity-llm     — local LLM server.
+#
+# LLM backend:
+#   By default, trinity-llm runs Ollama (profile "ollama").
+#   To use llama.cpp instead, start with:
+#     TRINITY_LLM=llamacpp docker compose ... up -d
+#
+# Start:
+#     docker compose -f webapp/docker/docker-compose.trinity.yml up -d
+#
+# Stop:
+#     docker compose -f webapp/docker/docker-compose.trinity.yml down
+
+name: trinity
+
+services:
+  trinity-agent:
+    build:
+      context: ../../Trinity-Agent
+      dockerfile: Dockerfile
+    image: trinity/agent:latest
+    container_name: trinity-agent
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:18789:18789"
+    environment:
+      - NODE_ENV=production
+      - TRINITY_BRAIN_API=http://trinity-brain:8100
+      - TRINITY_BRAIN_ENABLED=true
+      - TRINITY_BRIDGE_URL=http://host.docker.internal:4711
+    env_file:
+      - ./trinity-agent.env
+    depends_on:
+      trinity-brain:
+        condition: service_started
+    networks:
+      - trinity
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - trinity_agent_data:/root/.Trinity
+      - trinity_agent_workspace:/app/workspace
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    command: ["node", "Trinity.mjs", "gateway", "--allow-unconfigured"]
+
+  trinity-brain:
+    build:
+      context: ../../Trinity-Brain
+      dockerfile: Dockerfile
+    image: trinity/brain:latest
+    container_name: trinity-brain
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8100:8100"
+    environment:
+      - CONFIG_PATH=/app/config.json
+      - DATA_DIR=/app/data
+      - PORT=8100
+      # LLM backend: "ollama" (default) or "openai" (for llama.cpp / vLLM).
+      - LLM_BACKEND=${TRINITY_LLM_BACKEND:-ollama}
+      # LLM URL: the brain calls this for embeddings + generation.
+      - LLM_URL=http://trinity-llm:${TRINITY_LLM_PORT:-11434}
+      - OLLAMA_URL=http://trinity-llm:${TRINITY_LLM_PORT:-11434}
+    volumes:
+      - ../../Trinity-Agent/docker/brain-config.json:/app/config.json:ro
+      - trinity_brain_data:/app/data
+    depends_on:
+      trinity-llm:
+        condition: service_started
+    networks:
+      - trinity
+    security_opt:
+      - no-new-privileges:true
+
+  # ---- LLM server (Ollama by default, llama.cpp via TRINITY_LLM=llamacpp) ----
+
+  trinity-llm:
+    profiles: ["", "ollama"]
+    image: ollama/ollama:latest
+    container_name: trinity-llm
+    restart: unless-stopped
+    volumes:
+      - trinity_llm_data:/root/.ollama
+    ports:
+      - "127.0.0.1:11434:11434"
+    networks:
+      - trinity
+    deploy:
+      resources:
+        limits:
+          memory: 6G
+
+  # Model pull init sidecar (for Ollama).
+  trinity-llm-init:
+    profiles: ["", "ollama"]
+    image: ollama/ollama:latest
+    container_name: trinity-llm-init
+    depends_on:
+      - trinity-llm
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        sleep 15
+        ollama pull nomic-embed-text
+        ollama pull qwen2.5:7b
+        echo "Models pulled for Trinity Brain"
+    environment:
+      OLLAMA_HOST: http://trinity-llm:11434
+    networks:
+      - trinity
+
+  # ---- llama.cpp alternative (activate with: TRINITY_LLM=llamacpp) ----------
+
+  trinity-llm-llamacpp:
+    profiles: ["llamacpp"]
+    image: ghcr.io/ggerganov/llama.cpp:server
+    container_name: trinity-llm
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8080:8080"
+    volumes:
+      - trinity_llm_models:/models
+    networks:
+      - trinity
+    deploy:
+      resources:
+        limits:
+          memory: 6G
+    command:
+      - "--host"
+      - "0.0.0.0"
+      - "--port"
+      - "8080"
+      - "--model"
+      - "/models/${TRINITY_LLM_MODEL:-qwen2.5-7b-instruct-q4_k_m.gguf}"
+      - "--embedding"
+      - "--ctx-size"
+      - "4096"
+      - "--n-gpu-layers"
+      - "${TRINITY_GPU_LAYERS:-0}"
+
+volumes:
+  trinity_agent_data:
+  trinity_agent_workspace:
+  trinity_brain_data:
+  trinity_llm_data:
+  trinity_llm_models:
+
+networks:
+  trinity:
+    driver: bridge
+    name: trinity-net
