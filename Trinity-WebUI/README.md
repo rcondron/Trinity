@@ -29,7 +29,7 @@ and managing what parts of the host it can touch.
 └──────────────────────────────────────────────────────┘
 ```
 
-- **Webapp** — static HTML/CSS/JS in this folder. Open `StartHere.html` in a
+- **Webapp** — static HTML/CSS/JS in this folder. Open `Setup.html` in a
   browser. No build step, no framework.
 - **Bridge** — host-side Node.js service (`bridge/bridge-server.js`). Acts as
   the security boundary: the webapp never talks to the Trinity container
@@ -42,7 +42,7 @@ and managing what parts of the host it can touch.
 
 ```
 webapp/
-├── StartHere.html           ← Main onboarding page (open this first)
+├── Setup.html           ← Main onboarding page (open this first)
 ├── README.md                ← You are here
 ├── css/
 │   └── style.css            ← Cyberpunk theme
@@ -92,9 +92,9 @@ webapp/
 
    ```bash
    # Just open the file in a browser
-   open webapp/StartHere.html       # macOS
-   xdg-open webapp/StartHere.html   # Linux
-   start webapp\StartHere.html      # Windows
+   open webapp/Setup.html       # macOS
+   xdg-open webapp/Setup.html   # Linux
+   start webapp\Setup.html      # Windows
    ```
 
 5. Walk through the 7-step onboarding wizard. In Step 5, paste the pairing
@@ -122,7 +122,7 @@ The Bridge:
 Anything not explicitly allow-listed is **denied**. The user manages the
 allow-list from the **Access Control** page in the webapp.
 
-## Why open `StartHere.html` directly?
+## Why open `Setup.html` directly?
 
 Because the bridge is loopback-only and CORS-safe for `file://` and
 `http://localhost` origins, you don't need to run a web server to serve the
@@ -131,5 +131,5 @@ webapp. You *can* serve it if you prefer:
 ```bash
 cd webapp
 python -m http.server 8080
-# then open http://localhost:8080/StartHere.html
+# then open http://localhost:8080/Setup.html
 ```
