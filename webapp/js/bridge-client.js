@@ -76,13 +76,24 @@
     }
 
     // ---- Chat relay ----
-    // The bridge forwards the prompt to the trinity-agent container and streams the reply.
     chat(message, conversationId) {
       return this._request("POST", "/chat", { message, conversationId });
     }
     chatHistory(conversationId) {
       return this._request("GET", "/chat/history?id=" + encodeURIComponent(conversationId || "default"));
     }
+
+    // ---- Gateway monitoring & control ----
+    gatewayHealth()           { return this._request("GET",  "/gateway/health"); }
+    gatewayStatus()           { return this._request("GET",  "/gateway/status"); }
+    gatewayConnected()        { return this._request("GET",  "/gateway/connected"); }
+    gatewayModels()           { return this._request("GET",  "/gateway/models"); }
+    gatewaySessions()         { return this._request("GET",  "/gateway/sessions"); }
+    gatewaySessionHistory(k)  { return this._request("GET",  "/gateway/sessions/" + encodeURIComponent(k) + "/history"); }
+    gatewayAbortChat(k)       { return this._request("POST", "/gateway/sessions/" + encodeURIComponent(k) + "/abort"); }
+    gatewayConfig()           { return this._request("GET",  "/gateway/config"); }
+    setGatewayConfig(cfg)     { return this._request("POST", "/gateway/config", cfg); }
+    gatewayAgents()           { return this._request("GET",  "/gateway/agents"); }
 
     // ---- Permissions / access control ----
     listPermissions()            { return this._request("GET",    "/permissions"); }

@@ -265,6 +265,63 @@ function createServer(cfg, token, trinity, brain) {
     return { log: auditRing.slice(-limit) };
   });
 
+  // ---- Gateway monitoring & control (via WebSocket RPC) ---------------------
+  // These routes proxy through to the Trinity gateway container's WebSocket API.
+  // The trinity-client maintains a persistent WebSocket connection.
+
+  route("GET", "/gateway/health", async (req) => {
+    requireAuth(req);
+    return trinity.health();
+  });
+
+  route("GET", "/gateway/status", async (req) => {
+    requireAuth(req);
+    return trinity.status();
+  });
+
+  route("GET", "/gateway/connected", async (req) => {
+    requireAuth(req);
+    return { connected: trinity.connected };
+  });
+
+  route("GET", "/gateway/models", async (req) => {
+    requireAuth(req);
+    return trinity.listModels();
+  });
+
+  route("GET", "/gateway/sessions", async (req) => {
+    requireAuth(req);
+    return trinity.listSessions();
+  });
+
+  route("GET", "/gateway/sessions/:key/history", async (req, url, params) => {
+    requireAuth(req);
+    return trinity.chatHistory(params.key);
+  });
+
+  route("POST", "/gateway/sessions/:key/abort", async (req, url, params) => {
+    requireAuth(req);
+    audit("gateway.chat.abort", { sessionKey: params.key });
+    return trinity.chatAbort(params.key);
+  });
+
+  route("GET", "/gateway/config", async (req) => {
+    requireAuth(req);
+    return trinity.getConfig();
+  });
+
+  route("POST", "/gateway/config", async (req) => {
+    requireAuth(req);
+    const body = await readBody(req) || {};
+    audit("gateway.config.set", Object.keys(body));
+    return trinity.setConfig(body);
+  });
+
+  route("GET", "/gateway/agents", async (req) => {
+    requireAuth(req);
+    return trinity.listAgents();
+  });
+
   // ---- Skills (relayed to trinity-brain) ------------------------------------
   // All skills live in the trinity-brain container. There is no bundled skills
   // folder on the host — the brain is the single source of truth, and the
