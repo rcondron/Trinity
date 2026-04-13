@@ -45,6 +45,14 @@
           </label>
 
           <label>
+            Model access mode
+            <select id="s-access-mode" onchange="Settings.showAccessModeHint()">
+              <option value="api-key">API Key (traditional)</option>
+              <option value="mor-token">MOR Token (Morpheus on-chain sessions)</option>
+            </select>
+          </label>
+
+          <label>
             Default model provider
             <select id="s-provider">
               <option value="ollama">Ollama (local)</option>
@@ -100,6 +108,8 @@
             </select>
           </label>
         </div>
+
+        <div id="access-mode-hint" class="callout info" style="display:none; margin-top:14px;"></div>
 
         <div class="actions" style="justify-content:flex-start;">
           <button type="submit" class="btn primary">Save agent settings</button>
@@ -175,6 +185,61 @@
           <span id="urls-status" class="status-pill">unchanged</span>
         </div>
       </form>
+    </section>
+
+    <!-- ======================== MORPHEUS COMPUTE ======================== -->
+    <section class="settings-section" id="sec-morpheus">
+      <h3 class="section-title">Morpheus Compute (On-Chain Sessions)</h3>
+      <p class="lead">
+        Connect to the <a href="https://mor.org" target="_blank" rel="noreferrer">Morpheus Network</a>
+        decentralized compute marketplace on Base. Browse on-chain models, stake MOR tokens to open
+        sessions with LLM providers, and chat through persistent per-session sockets.
+      </p>
+
+      <div class="callout info">
+        <strong>How it works.</strong> The Morpheus Diamond Proxy at
+        <code>0x6aBE…030a</code> on Base hosts a registry of AI models and providers.
+        You select a model, find a provider with good reputation, stake MOR to open a session,
+        and get a persistent TCP connection to the provider's LLM endpoint for the session duration.
+      </div>
+
+      <form class="settings-form" id="morpheus-form" onsubmit="return Settings.saveMorpheus(event)">
+        <div class="form-grid">
+          <label>
+            Base RPC URL
+            <input type="text" id="m-rpc" placeholder="https://mainnet.base.org" />
+          </label>
+
+          <label>
+            Wallet private key <small class="hint">(for signing txs)</small>
+            <input type="password" id="m-key" placeholder="0x..." />
+          </label>
+
+          <label class="inline">
+            <input type="checkbox" id="m-testnet" />
+            Use Base Sepolia testnet
+          </label>
+
+          <label>
+            Auto-close lead time (seconds before expiry)
+            <input type="number" id="m-autoclose" value="120" min="30" max="600" />
+          </label>
+        </div>
+
+        <div class="actions" style="justify-content:flex-start;">
+          <button type="submit" class="btn primary">Save Morpheus config</button>
+          <span id="morpheus-status" class="status-pill">unchanged</span>
+        </div>
+      </form>
+
+      <h4 style="margin-top:18px; color:var(--accent-2);">Active Compute Sessions</h4>
+      <p class="sub">
+        Each session has its own persistent TCP socket to the provider. Sessions auto-close
+        before their on-chain expiry to protect your stake.
+      </p>
+      <div id="morpheus-sessions" class="perm-list">
+        <div class="sub">loading…</div>
+      </div>
     </section>
 
     <!-- ======================== BRAIN MODEL CONFIG ======================== -->

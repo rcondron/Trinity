@@ -29,13 +29,19 @@
 
   <main class="page">
     <h2>Dashboard</h2>
-    <p class="lead">Live health of your Trinity stack. All telemetry is pulled from the Bridge.</p>
+    <p class="lead">Real-time health of the Trinity stack. Telemetry pulled from the Bridge + Gateway WebSocket.</p>
 
+    <!-- Status cards -->
     <div class="dashboard-grid">
       <div class="card">
         <h3>Bridge</h3>
         <div class="big-stat" id="stat-bridge">—</div>
         <div class="sub" id="sub-bridge">host-side gatekeeper</div>
+      </div>
+      <div class="card">
+        <h3>Gateway (WS)</h3>
+        <div class="big-stat" id="stat-gw">—</div>
+        <div class="sub" id="sub-gw">persistent WebSocket to agent</div>
       </div>
       <div class="card">
         <h3>Trinity Agent</h3>
@@ -48,20 +54,56 @@
         <div class="sub" id="sub-brain">memory + vectors + graph</div>
       </div>
       <div class="card">
+        <h3>LLM Server</h3>
+        <div class="big-stat" id="stat-llm">—</div>
+        <div class="sub" id="sub-llm">Ollama / llama.cpp</div>
+      </div>
+      <div class="card">
         <h3>Permissions</h3>
         <div class="big-stat" id="stat-perms">—</div>
         <div class="sub">enabled host resources</div>
       </div>
     </div>
 
+    <!-- Gateway details -->
+    <h3 style="margin-top:28px; color:var(--accent-2);">Gateway Details</h3>
+    <div class="dashboard-grid">
+      <div class="card">
+        <h3>Active Model</h3>
+        <div class="big-stat" id="stat-model" style="font-size:16px;">—</div>
+        <div class="sub" id="sub-model">primary LLM</div>
+      </div>
+      <div class="card">
+        <h3>Sessions</h3>
+        <div class="big-stat" id="stat-sessions">—</div>
+        <div class="sub" id="sub-sessions">chat sessions in gateway</div>
+      </div>
+      <div class="card">
+        <h3>Wallet</h3>
+        <div class="big-stat" id="stat-wallet" style="font-size:14px;">—</div>
+        <div class="sub" id="sub-wallet">Trinity's address</div>
+      </div>
+      <div class="card">
+        <h3>Morpheus Sessions</h3>
+        <div class="big-stat" id="stat-mor-sessions">—</div>
+        <div class="sub" id="sub-mor-sessions">on-chain compute sessions</div>
+      </div>
+    </div>
+
+    <!-- Controls -->
     <h3 style="margin-top:28px; color:var(--accent-2);">Controls</h3>
     <div class="actions" style="justify-content:flex-start;">
       <button class="btn primary" onclick="Dashboard.start()">Start</button>
       <button class="btn ghost"   onclick="Dashboard.restart()">Restart</button>
       <button class="btn danger"  onclick="Dashboard.stop()">Stop</button>
-      <button class="btn ghost"   onclick="Dashboard.refresh()">↻ Refresh</button>
+      <button class="btn ghost"   onclick="Dashboard.refresh()">Refresh</button>
     </div>
 
+    <!-- Containers -->
+    <h3 style="margin-top:28px; color:var(--accent-2);">Docker Containers</h3>
+    <div id="container-list" class="perm-list"></div>
+
+    <!-- Audit log -->
     <h3 style="margin-top:28px; color:var(--accent-2);">Audit Log</h3>
     <div class="log-stream" id="log-stream"></div>
   </main>

@@ -1,6 +1,6 @@
 // Onboarding flow controller for StartHere.html
 (function (global) {
-  const TOTAL_STEPS = 7;
+  const TOTAL_STEPS = 8;
   const STATE_KEY = "trinity.onboarding.state";
 
   const state = {
@@ -32,6 +32,7 @@
       el.classList.toggle("done",   n <  state.current);
     });
     if (state.current === TOTAL_STEPS) renderSummary();
+    if (state.current === 7) checkWalletExists();
     saveState();
   }
 
@@ -121,6 +122,58 @@
     return false;
   }
 
+  async function createWallet() {
+    const pass  = (document.getElementById("wallet-pass")  || {}).value || "";
+    const pass2 = (document.getElementById("wallet-pass2") || {}).value || "";
+    if (pass.length < 8) { setPill("wallet-status", "8+ characters required", "err"); return; }
+    if (pass !== pass2) { setPill("wallet-status", "passphrases don't match", "err"); return; }
+
+    setPill("wallet-status", "generating…");
+    try {
+      const res = await Bridge.createWallet(pass, 3);
+      state.wallet = res.addresses[0].address;
+      saveState();
+
+      // Show the mnemonic ONCE.
+      document.getElementById("wallet-create-form").style.display = "none";
+      const mnDisplay = document.getElementById("wallet-mnemonic-display");
+      mnDisplay.style.display = "block";
+      document.getElementById("wallet-mnemonic").textContent = res.mnemonic;
+
+      const addrList = document.getElementById("wallet-addresses");
+      addrList.innerHTML = "";
+      (res.addresses || []).forEach(function (a) {
+        const row = document.createElement("div");
+        row.className = "perm-row";
+        row.style.gridTemplateColumns = "60px 1fr 140px";
+        row.innerHTML =
+          "<div class='mode'>#" + a.index + "</div>" +
+          "<div class='path' style='font-size:13px;'>" + a.address + "</div>" +
+          "<div class='name'>" + a.label + "</div>";
+        addrList.appendChild(row);
+      });
+
+      setPill("wallet-status", "created", "ok");
+    } catch (e) {
+      setPill("wallet-status", e.message || "failed", "err");
+    }
+  }
+
+  async function checkWalletExists() {
+    try {
+      const res = await Bridge.walletStatus();
+      if (res.initialized) {
+        state.wallet = res.address;
+        var existing = document.getElementById("wallet-existing");
+        if (existing) {
+          existing.style.display = "block";
+          document.getElementById("wallet-existing-addr").textContent = "Address: " + res.address;
+          document.getElementById("wallet-create-form").style.display = "none";
+        }
+      }
+    } catch { /* bridge offline */ }
+  }
+
   function renderSummary() {
     const s = document.getElementById("summary");
     if (!s) return;
@@ -129,6 +182,7 @@
       ["Docker",       state.docker],
       ["Containers",   state.containers],
       ["Bridge",       state.paired ? "paired" : "not paired"],
+      ["Wallet",       state.wallet || "(not created)"],
       ["Agent name",   c.name || "(unset)"],
       ["Model",        c.provider || "(unset)"],
       ["Scope",        c.scope || "(unset)"],
@@ -174,6 +228,6 @@
   global.Onboarding = {
     next, prev, show,
     checkDocker, checkContainers,
-    pairBridge, saveConfig, launch,
+    pairBridge, saveConfig, createWallet, launch,
   };
 })(window);

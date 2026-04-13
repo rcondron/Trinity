@@ -36,7 +36,8 @@
       <div class="step" data-step="4"><span>4</span><label>Trinity Containers</label></div>
       <div class="step" data-step="5"><span>5</span><label>Bridge Setup</label></div>
       <div class="step" data-step="6"><span>6</span><label>Agent Config</label></div>
-      <div class="step" data-step="7"><span>7</span><label>Launch</label></div>
+      <div class="step" data-step="7"><span>7</span><label>Wallet</label></div>
+      <div class="step" data-step="8"><span>8</span><label>Launch</label></div>
     </div>
 
     <!-- STEP 1: Welcome -->
@@ -293,8 +294,69 @@ node bridge-server.js --daemon</code></pre>
       </form>
     </section>
 
-    <!-- STEP 7: Launch -->
+    <!-- STEP 7: Wallet -->
     <section class="step-panel" data-panel="7">
+      <h2>Trinity's Wallet</h2>
+      <p class="lead">
+        Trinity needs her own blockchain identity. This step creates an HD wallet
+        (BIP-39 mnemonic) that lives encrypted inside the agent's container.
+      </p>
+
+      <div class="callout info">
+        <strong>How addresses are used.</strong>
+        Address <b>#0</b> is Trinity's main gateway address — used for opening the primary
+        Morpheus compute session (staking MOR).
+        Addresses <b>#1, #2, …</b> are for sub-agents that need their own sessions with
+        different LLM providers. Trinity manages these internally and derives them from
+        the same master mnemonic as needed.
+      </div>
+
+      <div id="wallet-existing" style="display:none;">
+        <div class="callout" style="border-color:var(--ok);">
+          <strong>Wallet already exists.</strong>
+          <span id="wallet-existing-addr"></span>
+          <br/>You can skip this step.
+        </div>
+      </div>
+
+      <div id="wallet-create-form">
+        <h3>Create wallet</h3>
+        <p>Choose a strong passphrase. This encrypts the mnemonic at rest (AES-256-GCM, PBKDF2-SHA512, 600k iterations).</p>
+
+        <div class="form-grid" style="max-width:500px;">
+          <label>
+            Passphrase (8+ characters)
+            <input type="password" id="wallet-pass" placeholder="strong passphrase" />
+          </label>
+          <label>
+            Confirm passphrase
+            <input type="password" id="wallet-pass2" placeholder="confirm" />
+          </label>
+        </div>
+        <div class="actions" style="justify-content:flex-start; margin-top:14px;">
+          <button class="btn primary" onclick="Onboarding.createWallet()">Generate Wallet</button>
+          <span id="wallet-status" class="status-pill">not created</span>
+        </div>
+      </div>
+
+      <div id="wallet-mnemonic-display" style="display:none; margin-top:18px;">
+        <div class="callout warn">
+          <strong>WRITE THIS DOWN.</strong> This is the only time you will see your mnemonic.
+          If you lose it, Trinity cannot recover her keys.
+        </div>
+        <pre id="wallet-mnemonic" style="font-size:16px; letter-spacing:1px; padding:18px; text-align:center;"></pre>
+        <h4 style="color:var(--accent-2);">Derived addresses</h4>
+        <div id="wallet-addresses" class="perm-list"></div>
+      </div>
+
+      <div class="actions">
+        <button class="btn ghost" onclick="Onboarding.prev()">← Back</button>
+        <button class="btn primary" onclick="Onboarding.next()">Continue →</button>
+      </div>
+    </section>
+
+    <!-- STEP 8: Launch -->
+    <section class="step-panel" data-panel="8">
       <h2>Launch Trinity</h2>
       <p class="lead">You're all set. Let's light her up.</p>
 

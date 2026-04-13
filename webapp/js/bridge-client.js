@@ -76,13 +76,24 @@
     }
 
     // ---- Chat relay ----
-    // The bridge forwards the prompt to the trinity-agent container and streams the reply.
     chat(message, conversationId) {
       return this._request("POST", "/chat", { message, conversationId });
     }
     chatHistory(conversationId) {
       return this._request("GET", "/chat/history?id=" + encodeURIComponent(conversationId || "default"));
     }
+
+    // ---- Gateway monitoring & control ----
+    gatewayHealth()           { return this._request("GET",  "/gateway/health"); }
+    gatewayStatus()           { return this._request("GET",  "/gateway/status"); }
+    gatewayConnected()        { return this._request("GET",  "/gateway/connected"); }
+    gatewayModels()           { return this._request("GET",  "/gateway/models"); }
+    gatewaySessions()         { return this._request("GET",  "/gateway/sessions"); }
+    gatewaySessionHistory(k)  { return this._request("GET",  "/gateway/sessions/" + encodeURIComponent(k) + "/history"); }
+    gatewayAbortChat(k)       { return this._request("POST", "/gateway/sessions/" + encodeURIComponent(k) + "/abort"); }
+    gatewayConfig()           { return this._request("GET",  "/gateway/config"); }
+    setGatewayConfig(cfg)     { return this._request("POST", "/gateway/config", cfg); }
+    gatewayAgents()           { return this._request("GET",  "/gateway/agents"); }
 
     // ---- Permissions / access control ----
     listPermissions()            { return this._request("GET",    "/permissions"); }
@@ -106,6 +117,18 @@
     // ---- Brain model management ----
     getBrainModel()            { return this._request("GET",  "/brain/model"); }
     saveBrainModel(cfg)        { return this._request("POST", "/brain/model", cfg); }
+
+    // ---- Wallet ----
+    walletStatus()             { return this._request("GET",  "/wallet/status"); }
+    createWallet(passphrase, addressCount) { return this._request("POST", "/wallet/create", { passphrase, addressCount }); }
+    deriveAddress(passphrase, label)       { return this._request("POST", "/wallet/derive",  { passphrase, label }); }
+
+    // ---- Morpheus Compute ----
+    getMorpheusConfig()        { return this._request("GET",  "/morpheus/config"); }
+    saveMorpheusConfig(cfg)    { return this._request("POST", "/morpheus/config", cfg); }
+    listMorpheusSessions()     { return this._request("GET",  "/morpheus/sessions"); }
+    getMorpheusSession(id)     { return this._request("GET",  "/morpheus/sessions/" + id); }
+    morpheusChat(id, message)  { return this._request("POST", "/morpheus/sessions/" + id + "/chat", { message }); }
 
     // ---- Lifecycle control ----
     startAgent()         { return this._request("POST", "/agent/start"); }

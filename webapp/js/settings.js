@@ -15,6 +15,7 @@
       const res = await Bridge.getConfig();
       const c = res.config || {};
       // Agent section
+      if (c.accessMode)    el("s-access-mode").value = c.accessMode;
       if (c.name)          el("s-name").value       = c.name;
       if (c.provider)      el("s-provider").value    = c.provider;
       if (c.defaultModel)  el("s-model").value       = c.defaultModel;
@@ -89,6 +90,45 @@
     } catch (e) {
       console.warn("Could not load brain model config:", e.message);
     }
+
+    // Morpheus Compute config
+    try {
+      const mc = await Bridge.getMorpheusConfig();
+      if (mc.rpcUrl)    el("m-rpc").value      = mc.rpcUrl;
+      if (mc.walletAddress) setPill("morpheus-status", "wallet: " + mc.walletAddress.slice(0, 10) + "…", "ok");
+      el("m-testnet").checked = !!mc.testnet;
+      if (mc.autoCloseLeadTimeSec) el("m-autoclose").value = mc.autoCloseLeadTimeSec;
+      if (mc.walletConfigured) el("m-key").value = "••••••";
+      loadMorpheusSessions();
+    } catch (e) {
+      console.warn("Could not load Morpheus config:", e.message);
+    }
+  }
+
+  // ======== Access mode hint ========
+  function showAccessModeHint() {
+    const mode = el("s-access-mode").value;
+    const hint = el("access-mode-hint");
+    if (!hint) return;
+    if (mode === "mor-token") {
+      hint.style.display = "block";
+      hint.className = "callout info";
+      hint.innerHTML =
+        "<strong>MOR Token mode.</strong> " +
+        "On gateway startup Trinity will stake MOR tokens to the Morpheus compute contract on Base " +
+        "and open a persistent session with an on-chain LLM provider. The session's TCP socket stays " +
+        "open for the full session duration — no per-request connections. " +
+        "Configure your wallet and session details in the <b>Morpheus Compute</b> section below. " +
+        "You do NOT need an API key when using MOR token mode.";
+    } else {
+      hint.style.display = "block";
+      hint.className = "callout info";
+      hint.innerHTML =
+        "<strong>API Key mode.</strong> " +
+        "Traditional provider access using an API key (Anthropic, OpenAI, Google, etc.). " +
+        "Configure your API keys in the <b>API Keys</b> section below. " +
+        "No MOR tokens or blockchain interaction required.";
+    }
   }
 
   // ======== Save agent settings ========
@@ -98,6 +138,7 @@
     try {
       await Bridge.saveConfig({
         name:         el("s-name").value.trim()      || undefined,
+        accessMode:   el("s-access-mode").value       || "api-key",
         provider:     el("s-provider").value          || undefined,
         defaultModel: el("s-model").value.trim()      || undefined,
         temperature:  el("s-temp").value !== "" ? parseFloat(el("s-temp").value) : undefined,
@@ -310,6 +351,61 @@
     setPill("brain-model-status", "preset applied — click save", "warn");
   }
 
+  // ======== Morpheus Compute ========
+  async function saveMorpheus(ev) {
+    ev.preventDefault();
+    setPill("morpheus-status", "saving…");
+    try {
+      await Bridge.saveMorpheusConfig({
+        rpcUrl:               el("m-rpc").value.trim() || undefined,
+        privateKey:           el("m-key").value.trim() || undefined,
+        testnet:              el("m-testnet").checked,
+        autoCloseLeadTimeSec: parseInt(el("m-autoclose").value, 10) || 120,
+      });
+      setPill("morpheus-status", "saved", "ok");
+    } catch (e) {
+      setPill("morpheus-status", e.message, "err");
+    }
+    return false;
+  }
+
+  function escape(s) {
+    return String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  }
+
+  async function loadMorpheusSessions() {
+    const container = document.getElementById("morpheus-sessions");
+    if (!container) return;
+    try {
+      const res = await Bridge.listMorpheusSessions();
+      const sessions = res.sessions || [];
+      if (sessions.length === 0) {
+        container.innerHTML = "<div class='sub'>No active sessions. Open sessions from the Trinity agent by selecting a Morpheus model.</div>";
+        return;
+      }
+      container.innerHTML = "";
+      for (const s of sessions) {
+        const timeLeft = s.endsAt ? Math.max(0, s.endsAt - Math.floor(Date.now() / 1000)) : 0;
+        const mins = Math.floor(timeLeft / 60);
+        const row = document.createElement("div");
+        row.className = "perm-row";
+        row.style.gridTemplateColumns = "1fr 140px 100px 80px";
+        row.innerHTML = `
+          <div>
+            <div class="name">${escape(s.modelName || s.modelId?.slice(0, 16) + "…")}</div>
+            <div class="path">${escape(s.endpoint)} · ${s.requestCount} reqs · ${Math.round(s.bytesReceived / 1024)} KB</div>
+          </div>
+          <div class="mode">${escape(s.provider?.slice(0, 10))}…</div>
+          <div class="status-pill ${s.alive ? 'ok' : 'err'}">${s.alive ? mins + 'm left' : 'closed'}</div>
+          <div class="path">${escape(s.stakeAmount)} MOR</div>
+        `;
+        container.appendChild(row);
+      }
+    } catch (e) {
+      container.innerHTML = "<div class='sub'>Could not load sessions: " + escape(e.message) + "</div>";
+    }
+  }
+
   // ======== Init ========
   document.addEventListener("DOMContentLoaded", () => {
     load();
@@ -320,6 +416,7 @@
     saveBackup, runBackupNow,
     showProviderFields,
     saveBrainModel, showLlmBackendHint, applyModelPreset,
+    saveMorpheus, showAccessModeHint,
     load,
   };
 })(window);

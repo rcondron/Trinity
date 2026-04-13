@@ -143,7 +143,7 @@ main.onboarding h2, main.page h2 {
 /* Stepper */
 .stepper {
   display: grid;
-  grid-template-columns: repeat(7, 1fr);
+  grid-template-columns: repeat(8, 1fr);
   gap: 8px;
   margin-bottom: 28px;
   padding: 14px 16px;

@@ -30,34 +30,40 @@
   <main class="page">
     <h2>Chat with Trinity</h2>
     <p class="lead">
-      Your messages are relayed from this browser to the Trinity Bridge, and from the bridge to the
-      trinity-agent Docker container. The bridge is the only point of contact between the agent and
-      your host.
+      Messages flow: browser &rarr; bridge &rarr; gateway container (WebSocket RPC).
+      Each conversation is a gateway session.
     </p>
 
     <div class="chat-shell">
       <aside class="chat-sidebar">
-        <h4>Conversations</h4>
+        <h4>Sessions</h4>
         <ul id="conv-list">
           <li class="active" data-id="default">default</li>
         </ul>
-        <button class="btn ghost" onclick="Chat.newConversation()">+ New</button>
+        <button class="btn ghost" style="width:100%;margin-top:6px;" onclick="Chat.newConversation()">+ New session</button>
+        <button class="btn ghost" style="width:100%;margin-top:4px;" onclick="Chat.loadGatewaySessions()">Refresh from gateway</button>
 
         <h4 style="margin-top:18px">Connection</h4>
-        <div class="status-pill" id="chat-bridge-status">checking…</div>
-        <div class="status-pill" id="chat-agent-status">agent: ?</div>
+        <div class="status-pill" id="chat-bridge-status">bridge: ?</div>
+        <div class="status-pill" id="chat-gw-status">gateway: ?</div>
+        <div class="status-pill" id="chat-agent-status">container: ?</div>
+
+        <h4 style="margin-top:18px">Active model</h4>
+        <div class="sub" id="chat-model-info">—</div>
       </aside>
 
       <section class="chat-main">
         <div class="chat-log" id="chat-log">
           <div class="msg system">
-            Welcome to Trinity. Say hi.
-            Messages route: <b>browser → bridge → trinity-agent container</b>.
+            Welcome to Trinity. Type a message to begin.
           </div>
         </div>
         <div class="chat-input">
-          <textarea id="chat-box" placeholder="Ask Trinity anything… (Shift+Enter for newline)"></textarea>
-          <button class="btn primary" onclick="Chat.send()">Send</button>
+          <textarea id="chat-box" placeholder="Ask Trinity anything… (Shift+Enter for newline)" rows="2"></textarea>
+          <div style="display:flex;flex-direction:column;gap:6px;">
+            <button class="btn primary" onclick="Chat.send()">Send</button>
+            <button class="btn ghost" style="font-size:11px;" onclick="Chat.abort()">Stop</button>
+          </div>
         </div>
       </section>
     </div>
