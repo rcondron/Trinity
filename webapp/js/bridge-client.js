@@ -107,6 +107,11 @@
     getBrainModel()            { return this._request("GET",  "/brain/model"); }
     saveBrainModel(cfg)        { return this._request("POST", "/brain/model", cfg); }
 
+    // ---- Wallet ----
+    walletStatus()             { return this._request("GET",  "/wallet/status"); }
+    createWallet(passphrase, addressCount) { return this._request("POST", "/wallet/create", { passphrase, addressCount }); }
+    deriveAddress(passphrase, label)       { return this._request("POST", "/wallet/derive",  { passphrase, label }); }
+
     // ---- Morpheus Compute ----
     getMorpheusConfig()        { return this._request("GET",  "/morpheus/config"); }
     saveMorpheusConfig(cfg)    { return this._request("POST", "/morpheus/config", cfg); }

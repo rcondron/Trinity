@@ -23,6 +23,7 @@
 import { MorpheusComputeClient } from "./compute-client.js";
 import { MorpheusSessionManager, type SessionHandle } from "./session-manager.js";
 import { sessionToProvider, type MorpheusProviderEntry } from "./provider-adapter.js";
+import { getTrinityWallet, type TrinityWallet } from "./wallet.js";
 
 // ---- Types ------------------------------------------------------------------
 
@@ -31,8 +32,14 @@ export interface MorpheusComputeConfig {
   mode: "api-key" | "mor-token";
 
   // ---- MOR-token mode fields ----
-  /** Hex private key for the wallet holding MOR tokens. */
+  /**
+   * Hex private key (legacy, deprecated).
+   * Prefer using the HD wallet (wallet.ts) which derives keys from the mnemonic.
+   * If omitted, the gateway key is derived from the Trinity wallet at index 0.
+   */
   privateKey?: string;
+  /** Wallet passphrase to unlock the mnemonic (required if using HD wallet). */
+  walletPassphrase?: string;
   /** Base chain RPC URL. */
   rpcUrl?: string;
   /** Use Base Sepolia testnet. */
@@ -50,6 +57,12 @@ export interface MorpheusComputeConfig {
     stakeAmount: string;
     /** Context window size (default 4096). */
     contextTokens?: number;
+    /**
+     * HD wallet index for this session's key (default 0 = gateway).
+     * Sub-agents can use index 1, 2, … to get their own addresses
+     * derived from Trinity's master mnemonic.
+     */
+    walletIndex?: number;
   }>;
   /** Seconds before session expiry to auto-close. */
   autoCloseLeadTimeSec?: number;
@@ -100,24 +113,44 @@ export async function initMorpheusCompute(
     return result;
   }
 
-  if (!config.privateKey) {
-    result.errors.push("MOR-token mode requires a wallet private key.");
-    console.error("[Morpheus]", result.errors[0]);
-    return result;
-  }
-
   if (!config.sessions || config.sessions.length === 0) {
     result.errors.push("MOR-token mode requires at least one session config.");
     console.error("[Morpheus]", result.errors[0]);
     return result;
   }
 
+  // ---- Resolve the gateway private key ----
+  // Priority: 1) HD wallet (mnemonic, index 0), 2) legacy raw privateKey.
+  let gatewayKey = config.privateKey;
+  const wallet = getTrinityWallet();
+
+  if (wallet.exists && config.walletPassphrase) {
+    try {
+      const state = await wallet.unlock(config.walletPassphrase);
+      gatewayKey = await wallet.getGatewayKey();
+      console.log(`[Morpheus] Wallet unlocked. Gateway address: ${state.address}`);
+      console.log(`[Morpheus] ${state.derivedCount} addresses available (index 0 = gateway, 1+ = sub-agents).`);
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : String(e);
+      result.errors.push("Wallet unlock failed: " + msg);
+      console.error("[Morpheus]", result.errors[result.errors.length - 1]);
+      return result;
+    }
+  } else if (!gatewayKey) {
+    result.errors.push(
+      "MOR-token mode requires either a Trinity wallet (created during onboarding) " +
+      "or a raw private key. Run the onboarding wizard to create a wallet."
+    );
+    console.error("[Morpheus]", result.errors[0]);
+    return result;
+  }
+
   console.log(`[Morpheus] Mode: mor-token — opening ${config.sessions.length} session(s)…`);
 
-  // 1. Create compute client (connects to Base chain).
+  // 1. Create compute client with the gateway key (index 0).
   const compute = new MorpheusComputeClient({
     rpcUrl: config.rpcUrl,
-    privateKey: config.privateKey,
+    privateKey: gatewayKey,
     testnet: config.testnet,
   });
 

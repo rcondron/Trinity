@@ -6,6 +6,8 @@ export { sessionToProvider, mergeProviders } from "./provider-adapter.js";
 export type { MorpheusProviderEntry } from "./provider-adapter.js";
 export { initMorpheusCompute, shutdownMorpheusCompute, getMorpheusStatus, getSessionManager, getActiveProviders } from "./gateway-init.js";
 export type { MorpheusComputeConfig, MorpheusInitResult } from "./gateway-init.js";
+export { TrinityWallet, getTrinityWallet } from "./wallet.js";
+export type { WalletInfo, WalletState } from "./wallet.js";
 export {
   DIAMOND_ADDRESS,
   MOR_TOKEN_ADDRESS,
