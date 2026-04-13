@@ -3,7 +3,7 @@
 The Trinity App is the user-facing desktop application. It runs a system tray
 icon, spawns the Trinity Bridge as a child process, and opens the WebUI in your
 browser (or a native webview). Platform-specific installers provide a
-one-click setup experience identical to Ollama's.
+one-click setup experience.
 
 ## Project Structure
 
