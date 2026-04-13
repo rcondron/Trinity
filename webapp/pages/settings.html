@@ -45,6 +45,14 @@
           </label>
 
           <label>
+            Model access mode
+            <select id="s-access-mode" onchange="Settings.showAccessModeHint()">
+              <option value="api-key">API Key (traditional)</option>
+              <option value="mor-token">MOR Token (Morpheus on-chain sessions)</option>
+            </select>
+          </label>
+
+          <label>
             Default model provider
             <select id="s-provider">
               <option value="ollama">Ollama (local)</option>
@@ -100,6 +108,8 @@
             </select>
           </label>
         </div>
+
+        <div id="access-mode-hint" class="callout info" style="display:none; margin-top:14px;"></div>
 
         <div class="actions" style="justify-content:flex-start;">
           <button type="submit" class="btn primary">Save agent settings</button>

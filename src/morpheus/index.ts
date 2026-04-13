@@ -2,6 +2,10 @@ export { MorpheusComputeClient } from "./compute-client.js";
 export type { MorpheusModel, MorpheusProvider, MorpheusBid, MorpheusSession, ProviderModelStats, ComputeClientConfig } from "./compute-client.js";
 export { MorpheusSessionManager } from "./session-manager.js";
 export type { SessionHandle, SessionManagerConfig, ChatRequest, ChatResponse } from "./session-manager.js";
+export { sessionToProvider, mergeProviders } from "./provider-adapter.js";
+export type { MorpheusProviderEntry } from "./provider-adapter.js";
+export { initMorpheusCompute, shutdownMorpheusCompute, getMorpheusStatus, getSessionManager, getActiveProviders } from "./gateway-init.js";
+export type { MorpheusComputeConfig, MorpheusInitResult } from "./gateway-init.js";
 export {
   DIAMOND_ADDRESS,
   MOR_TOKEN_ADDRESS,

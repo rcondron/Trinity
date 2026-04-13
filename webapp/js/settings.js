@@ -15,6 +15,7 @@
       const res = await Bridge.getConfig();
       const c = res.config || {};
       // Agent section
+      if (c.accessMode)    el("s-access-mode").value = c.accessMode;
       if (c.name)          el("s-name").value       = c.name;
       if (c.provider)      el("s-provider").value    = c.provider;
       if (c.defaultModel)  el("s-model").value       = c.defaultModel;
@@ -104,6 +105,32 @@
     }
   }
 
+  // ======== Access mode hint ========
+  function showAccessModeHint() {
+    const mode = el("s-access-mode").value;
+    const hint = el("access-mode-hint");
+    if (!hint) return;
+    if (mode === "mor-token") {
+      hint.style.display = "block";
+      hint.className = "callout info";
+      hint.innerHTML =
+        "<strong>MOR Token mode.</strong> " +
+        "On gateway startup Trinity will stake MOR tokens to the Morpheus compute contract on Base " +
+        "and open a persistent session with an on-chain LLM provider. The session's TCP socket stays " +
+        "open for the full session duration — no per-request connections. " +
+        "Configure your wallet and session details in the <b>Morpheus Compute</b> section below. " +
+        "You do NOT need an API key when using MOR token mode.";
+    } else {
+      hint.style.display = "block";
+      hint.className = "callout info";
+      hint.innerHTML =
+        "<strong>API Key mode.</strong> " +
+        "Traditional provider access using an API key (Anthropic, OpenAI, Google, etc.). " +
+        "Configure your API keys in the <b>API Keys</b> section below. " +
+        "No MOR tokens or blockchain interaction required.";
+    }
+  }
+
   // ======== Save agent settings ========
   async function saveAgent(ev) {
     ev.preventDefault();
@@ -111,6 +138,7 @@
     try {
       await Bridge.saveConfig({
         name:         el("s-name").value.trim()      || undefined,
+        accessMode:   el("s-access-mode").value       || "api-key",
         provider:     el("s-provider").value          || undefined,
         defaultModel: el("s-model").value.trim()      || undefined,
         temperature:  el("s-temp").value !== "" ? parseFloat(el("s-temp").value) : undefined,
@@ -388,7 +416,7 @@
     saveBackup, runBackupNow,
     showProviderFields,
     saveBrainModel, showLlmBackendHint, applyModelPreset,
-    saveMorpheus,
+    saveMorpheus, showAccessModeHint,
     load,
   };
 })(window);

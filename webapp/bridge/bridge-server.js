@@ -503,7 +503,7 @@ function createServer(cfg, token, trinity, brain) {
     const body = await readBody(req) || {};
     // Whitelisted keys that may be persisted.
     const allowed = [
-      "name", "provider", "scope", "brain", "morpheus",
+      "name", "provider", "scope", "brain", "morpheus", "accessMode",
       // Model / provider settings
       "apiKeys", "defaultModel", "temperature", "maxTokens",
       // Brain settings
