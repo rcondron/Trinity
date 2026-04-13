@@ -48,8 +48,10 @@
 
   async function checkDocker() {
     setPill("docker-status", "checking…");
+    var hint = document.getElementById("docker-hint");
+    if (hint) hint.style.display = "none";
     try {
-      const r = await Bridge.dockerStatus();
+      var r = await Bridge.dockerStatus();
       if (r && r.installed) {
         state.docker = "ok";
         setPill("docker-status", "Docker " + (r.version || "ok"), "ok");
@@ -58,8 +60,25 @@
         setPill("docker-status", "not found", "err");
       }
     } catch (e) {
-      state.docker = "unknown";
-      setPill("docker-status", e.code === "BRIDGE_DOWN" ? "bridge offline" : "check failed", "warn");
+      if (e.code === "BRIDGE_DOWN") {
+        // Bridge isn't running yet — that's normal at this step.
+        // Tell the user to verify Docker manually for now.
+        state.docker = "manual";
+        setPill("docker-status", "verify manually", "warn");
+        if (hint) {
+          hint.style.display = "block";
+          hint.className = "callout warn";
+          hint.innerHTML =
+            "<strong>Bridge not running yet.</strong> " +
+            "The Docker check requires the Bridge (set up in step 5). " +
+            "For now, verify Docker is installed by running " +
+            "<code>docker --version</code> in your terminal. " +
+            "You can re-check after starting the Bridge.";
+        }
+      } else {
+        state.docker = "unknown";
+        setPill("docker-status", "check failed", "warn");
+      }
     }
     saveState();
   }
@@ -82,7 +101,11 @@
         setPill("containers-status", "no trinity containers", "err");
       }
     } catch (e) {
-      setPill("containers-status", e.code === "BRIDGE_DOWN" ? "bridge offline" : "check failed", "warn");
+      if (e.code === "BRIDGE_DOWN") {
+        setPill("containers-status", "start Bridge first (step 5)", "warn");
+      } else {
+        setPill("containers-status", "check failed", "warn");
+      }
     }
     saveState();
   }
