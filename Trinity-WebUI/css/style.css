@@ -2,8 +2,8 @@
 
 :root {
   --bg: #000000;
-  --bg-panel: rgba(8, 16, 20, 0.45);
-  --bg-panel-2: rgba(10, 22, 28, 0.5);
+  --bg-panel: rgba(0, 0, 0, 0.9);
+  --bg-panel-2: rgba(0, 0, 0, 0.9);
   --border: #1b3b42;
   --border-hi: #2bd4c2;
   --text: #d6f4ef;
@@ -53,7 +53,7 @@ pre code { color: inherit; background: none; }
 #matrix-rain {
   position: fixed;
   inset: 0;
-  z-index: -1;
+  z-index: 0;
   opacity: 0.5;
   pointer-events: none;
 }
@@ -67,9 +67,8 @@ pre code { color: inherit; background: none; }
   justify-content: space-between;
   align-items: center;
   padding: 16px 28px;
-  background: rgba(3, 8, 10, 0.5);
+  background: rgba(0, 0, 0, 0.9);
   border-bottom: 1px solid var(--border);
-  backdrop-filter: blur(6px);
 }
 
 .brand {
@@ -115,6 +114,8 @@ pre code { color: inherit; background: none; }
 
 /* Main containers */
 main.onboarding, main.page {
+  position: relative;
+  z-index: 1;
   max-width: 1100px;
   margin: 32px auto 80px auto;
   padding: 0 28px;
@@ -443,12 +444,11 @@ main.onboarding h2, main.page h2 {
   display: flex;
   justify-content: space-between;
   padding: 10px 22px;
-  background: rgba(3, 8, 10, 0.5);
+  background: rgba(0, 0, 0, 0.9);
   border-top: 1px solid var(--border);
   font-size: 12px;
   color: var(--text-dim);
   font-family: var(--mono);
-  backdrop-filter: blur(6px);
   backdrop-filter: blur(8px);
 }
 
