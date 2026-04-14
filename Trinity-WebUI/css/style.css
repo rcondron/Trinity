@@ -1,7 +1,7 @@
 /* Trinity webapp — matrix / cyberpunk theme */
 
 :root {
-  --bg: transparent;
+  --bg: #000000;
   --bg-panel: rgba(8, 16, 20, 0.45);
   --bg-panel-2: rgba(10, 22, 28, 0.5);
   --border: #1b3b42;
