@@ -89,12 +89,7 @@ go build -ldflags "-H windowsgui" -o "dist\windows\trinity app.exe" .\cmd\app\
 cd ..
 ```
 
-### Step 2: Add the icon
-
-Place your `icon.ico` file in `Trinity-App/assets/icon.ico`. A 256×256 multi-resolution
-ICO file works best.
-
-### Step 3: Build the installer
+### Step 2: Build the installer
 
 Make sure Inno Setup's `iscc.exe` is in your PATH (typically
 `C:\Program Files (x86)\Inno Setup 6\`):
