@@ -3,6 +3,8 @@
 package api
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -41,11 +43,9 @@ func NewServer(cfg Config) *Server {
 	r := gin.New()
 	r.Use(gin.Recovery())
 	r.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"http://127.0.0.1", "http://localhost", "file://", "null"},
+		AllowAllOrigins:  true,
 		AllowMethods:     []string{"GET", "POST", "DELETE", "PATCH", "OPTIONS"},
 		AllowHeaders:     []string{"Content-Type", "X-Trinity-Token"},
-		AllowWildcard:    true,
-		AllowOriginFunc:  func(origin string) bool { return true }, // loopback only
 		MaxAge:           12 * time.Hour,
 	}))
 
