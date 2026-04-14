@@ -67,8 +67,8 @@ Filename: "{app}\{#MyAppExeName}"; Description: "Launch Trinity"; \
 
 [UninstallRun]
 ; Kill running processes before uninstall
-Filename: "taskkill"; Parameters: "/F /IM ""trinity app.exe"""; Flags: runhidden
-Filename: "taskkill"; Parameters: "/F /IM ""trinity-bridge.exe"""; Flags: runhidden
+Filename: "taskkill"; Parameters: "/F /IM ""trinity app.exe"""; Flags: runhidden; RunOnceId: "KillApp"
+Filename: "taskkill"; Parameters: "/F /IM ""trinity-bridge.exe"""; Flags: runhidden; RunOnceId: "KillBridge"
 
 [Code]
 // Check if path already contains the app directory
