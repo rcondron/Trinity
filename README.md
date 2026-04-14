@@ -28,15 +28,23 @@ Trinity-Test/
 │   ├── Dockerfile              Brain container image
 │   └── requirements.txt        Python dependencies
 │
-├── Trinity-Bridge/             Host-side security gatekeeper (Node.js)
-│   ├── bridge-server.js        HTTP API on 127.0.0.1:4711
-│   ├── trinity-client.js       Persistent WebSocket to the gateway
-│   ├── brain-client.js         HTTP client for the brain container
-│   ├── security.js             Permission store + decision engine
-│   └── package.json            Dependencies (ws)
+├── Trinity-Bridge/             Host-side security gatekeeper (Go + Node.js)
+│   ├── cmd/bridge/             Go implementation (single binary, recommended)
+│   ├── internal/               Go packages: api, gateway, security, audit
+│   ├── bridge-server.js        Node.js implementation (legacy/reference)
+│   └── go.mod                  Go module definition
+│
+├── Trinity-App/                Desktop application + installers
+│   ├── cmd/app/                Go tray app (spawns bridge, opens webview)
+│   ├── internal/tray/          Platform-native tray (Win32, Cocoa, Linux)
+│   ├── installer/trinity.iss   Inno Setup script → TrinitySetup.exe
+│   └── scripts/
+│       ├── build-windows.ps1   Windows build → TrinitySetup.exe
+│       ├── create-dmg.sh       macOS build → Trinity.dmg
+│       └── install-linux.sh    Linux install + systemd service
 │
 ├── Trinity-WebUI/              Browser interface (static HTML/CSS/JS)
-│   ├── StartHere.html          Onboarding wizard (8 steps)
+│   ├── Setup.html              Onboarding wizard (8 steps)
 │   ├── pages/
 │   │   ├── dashboard.html      Command & control center
 │   │   ├── chat.html           Chat with Trinity
@@ -59,9 +67,42 @@ Trinity-Test/
 |-----------|---------|
 | OS | Windows 10+, macOS 12+, Linux (kernel 5.10+) |
 | Docker | Docker Engine or Docker Desktop with Compose v2 |
-| Node.js | v20+ (for the Bridge) |
 | RAM | 16 GB (32 GB recommended for local LLMs) |
 | Disk | 40 GB free |
+
+## Install
+
+### Windows — TrinitySetup.exe
+
+Download `TrinitySetup.exe` and run it. Installs to `%LOCALAPPDATA%\Programs\Trinity`
+(no admin required). Adds the bridge to PATH, creates a desktop shortcut,
+and launches on login.
+
+### macOS — Trinity.dmg
+
+Download `Trinity.dmg`, drag Trinity to Applications. The app runs as a menu bar
+item, auto-starts via launchd, and opens the WebUI in your browser.
+
+### Linux — install script
+
+```bash
+curl -fsSL https://trinity.morpheus.ai/install.sh | bash
+# or manually:
+cd Trinity-App/scripts && sudo ./install-linux.sh
+```
+
+Installs the Go bridge to `/usr/local/bin/`, creates a systemd service,
+and starts automatically.
+
+### From source
+
+```bash
+# Build the Go bridge:
+cd Trinity-Bridge && go build -o trinity-bridge ./cmd/bridge
+
+# Build the desktop app:
+cd Trinity-App && go build -o "trinity app" ./cmd/app
+```
 
 ## Quick Start
 

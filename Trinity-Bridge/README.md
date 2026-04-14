@@ -5,6 +5,29 @@ container (and the Trinity webapp) and the rest of your computer. It is the
 single security boundary through which the agent is permitted to touch your
 filesystem, run commands, or reach devices.
 
+## Implementations
+
+| Language | Directory | Status |
+|----------|-----------|--------|
+| **Go** (recommended) | `cmd/bridge/`, `internal/` | Primary — single binary, no runtime deps |
+| Node.js (legacy) | `bridge-server.js` | Reference — requires Node 20+ and `npm install` |
+
+### Build the Go bridge
+
+```bash
+cd Trinity-Bridge
+go build -o trinity-bridge ./cmd/bridge
+./trinity-bridge
+```
+
+### Run the Node.js bridge (legacy)
+
+```bash
+cd Trinity-Bridge
+npm install
+node bridge-server.js
+```
+
 ```
 ┌────────────────── Host (your computer) ──────────────────┐
 │                                                          │

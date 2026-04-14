@@ -17,7 +17,7 @@
   }
 
   function draw() {
-    ctx.fillStyle = "rgba(2, 6, 8, 0.08)";
+    ctx.fillStyle = "rgba(0, 0, 0, 0.08)";
     ctx.fillRect(0, 0, w, h);
     ctx.fillStyle = "#2bd4c2";
     ctx.font = fontSize + "px monospace";
