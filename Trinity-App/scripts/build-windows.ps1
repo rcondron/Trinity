@@ -38,14 +38,29 @@ Pop-Location
 
 # Create installer.
 $IssFile = Join-Path $AppDir "installer\trinity.iss"
+
+# Find ISCC.exe — check PATH first, then common install locations.
+$IsccPath = $null
 if (Get-Command iscc.exe -ErrorAction SilentlyContinue) {
+    $IsccPath = "iscc.exe"
+} elseif (Test-Path "$env:LOCALAPPDATA\Programs\Inno Setup 6\ISCC.exe") {
+    $IsccPath = "$env:LOCALAPPDATA\Programs\Inno Setup 6\ISCC.exe"
+} elseif (Test-Path "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe") {
+    $IsccPath = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+} elseif (Test-Path "$env:ProgramFiles\Inno Setup 6\ISCC.exe") {
+    $IsccPath = "$env:ProgramFiles\Inno Setup 6\ISCC.exe"
+}
+
+if ($IsccPath) {
     Write-Host "Building TrinitySetup.exe with Inno Setup..."
-    iscc.exe $IssFile /O"$DistDir" /F"TrinitySetup"
+    Write-Host "  Using: $IsccPath"
+    & $IsccPath $IssFile /O"$DistDir" /F"TrinitySetup"
     Write-Host ""
     Write-Host "  TrinitySetup.exe: $DistDir\TrinitySetup.exe"
 } else {
     Write-Host ""
-    Write-Host "  WARNING: Inno Setup not found. Install it from https://jrsoftware.org/isinfo.php"
+    Write-Host "  WARNING: Inno Setup not found."
+    Write-Host "  Install it with: winget install JRSoftware.InnoSetup"
     Write-Host "  Binaries built to: $DistDir"
 }
 

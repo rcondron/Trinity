@@ -91,8 +91,14 @@ cd ..
 
 ### Step 2: Build the installer
 
-Make sure Inno Setup's `iscc.exe` is in your PATH (typically
-`C:\Program Files (x86)\Inno Setup 6\`):
+Install [Inno Setup 6](https://jrsoftware.org/isdl.php) if you haven't:
+
+```powershell
+winget install JRSoftware.InnoSetup
+```
+
+Then build the installer. Inno Setup installs `ISCC.exe` to your local
+AppData (not in PATH by default), so use the full path:
 
 ```powershell
 cd Trinity-App
@@ -101,7 +107,7 @@ cd Trinity-App
 copy ..\Trinity-Bridge\dist\trinity-bridge.exe dist\windows\
 
 # Run Inno Setup compiler
-iscc.exe installer\trinity.iss /O"dist\windows" /F"TrinitySetup"
+& "$env:LOCALAPPDATA\Programs\Inno Setup 6\ISCC.exe" installer\trinity.iss /O"dist\windows" /F"TrinitySetup"
 ```
 
 The installer will be at `Trinity-App/dist/windows/TrinitySetup.exe`.
