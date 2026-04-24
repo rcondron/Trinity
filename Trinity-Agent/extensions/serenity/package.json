@@ -8,7 +8,7 @@
     "@sinclair/typebox": "^0.33.0"
   },
   "peerDependencies": {
-    "Trinity": "*"
+    "Trinity": "workspace:*"
   },
   "keywords": [
     "Trinity",
