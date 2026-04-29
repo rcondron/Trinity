@@ -41,6 +41,7 @@ const DEFAULTS = {
   port: 4711,
   trinityContainerUrl: process.env.TRINITY_CONTAINER_URL || "http://127.0.0.1:18789",
   brainContainerUrl:   process.env.TRINITY_BRAIN_URL     || "http://127.0.0.1:8100",
+  gatewayToken:        process.env.TRINITY_GATEWAY_TOKEN || "",
   allowedOrigins: [
     "http://127.0.0.1",
     "http://localhost",
@@ -1048,7 +1049,8 @@ function createServer(cfg, token, trinity, brain) {
 function main() {
   const cfg = loadConfig();
   const token = loadOrCreateToken();
-  const trinity = new TrinityClient(cfg.trinityContainerUrl);
+  const trinityOpts = cfg.gatewayToken ? { token: cfg.gatewayToken } : {};
+  const trinity = new TrinityClient(cfg.trinityContainerUrl, trinityOpts);
   const brain   = new BrainClient(cfg.brainContainerUrl);
 
   const server = createServer(cfg, token, trinity, brain);
