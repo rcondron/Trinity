@@ -63,7 +63,15 @@ class TrinityClient {
             platform: process.platform,
             mode: "backend"
           },
-          ...(this._authToken ? { auth: { token: this._authToken } } : {})
+          ...(this._authToken ? { auth: { token: this._authToken } } : {}),
+          role: "operator",
+          scopes: [
+            "operator.admin",
+            "operator.read",
+            "operator.write",
+            "operator.approvals",
+            "operator.pairing"
+          ]
         }
       });
       this._ws.send(connectFrame, (err) => {
