@@ -40,7 +40,9 @@ class TrinityClient {
 
     this._ws.on("open", () => {
       // Gateway protocol v3 requires a "connect" handshake as the first frame.
+      // Do not mark as connected until the server acknowledges the connect.
       const connectId = crypto.randomBytes(8).toString("hex");
+      this._connectId = connectId;
       const connectFrame = JSON.stringify({
         type: "req",
         id: connectId,
@@ -57,15 +59,32 @@ class TrinityClient {
           }
         }
       });
-      this._ws.send(connectFrame);
-      this._connected = true;
-      this._reconnectDelay = 1000;
-      console.log("[TrinityClient] Connected to gateway at", this.baseUrl);
+      this._ws.send(connectFrame, (err) => {
+        if (err) {
+          console.error("[TrinityClient] Failed to send connect handshake:", err.message);
+          return;
+        }
+      });
     });
 
     this._ws.on("message", (raw) => {
       let msg;
       try { msg = JSON.parse(raw.toString()); } catch { return; }
+
+      // Handle the connect handshake response before anything else.
+      if (msg.type === "res" && msg.id === this._connectId) {
+        this._connectId = null;
+        if (msg.ok) {
+          this._connected = true;
+          this._reconnectDelay = 1000;
+          console.log("[TrinityClient] Connected to gateway at", this.baseUrl);
+        } else {
+          const reason = (msg.error && msg.error.message) || "connect rejected";
+          console.error("[TrinityClient] Connect handshake rejected:", reason);
+          this._ws.close();
+        }
+        return;
+      }
 
       if (msg.type === "res" && msg.id && this._pending.has(msg.id)) {
         const p = this._pending.get(msg.id);
