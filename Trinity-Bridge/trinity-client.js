@@ -39,6 +39,25 @@ class TrinityClient {
     }
 
     this._ws.on("open", () => {
+      // Gateway protocol v3 requires a "connect" handshake as the first frame.
+      const connectId = crypto.randomBytes(8).toString("hex");
+      const connectFrame = JSON.stringify({
+        type: "req",
+        id: connectId,
+        method: "connect",
+        params: {
+          minProtocol: 3,
+          maxProtocol: 3,
+          client: {
+            id: "gateway-client",
+            displayName: "Trinity Bridge",
+            version: "1.0.0",
+            platform: process.platform,
+            mode: "backend"
+          }
+        }
+      });
+      this._ws.send(connectFrame);
       this._connected = true;
       this._reconnectDelay = 1000;
       console.log("[TrinityClient] Connected to gateway at", this.baseUrl);
