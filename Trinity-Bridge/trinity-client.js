@@ -14,8 +14,14 @@ const WebSocket = require("ws");
 const crypto = require("crypto");
 
 class TrinityClient {
-  constructor(baseUrl) {
+  /**
+   * @param {string} baseUrl  Gateway WebSocket URL (e.g. "http://127.0.0.1:18789").
+   * @param {object} [opts]
+   * @param {string} [opts.token]  Gateway shared-secret token for auth.
+   */
+  constructor(baseUrl, opts = {}) {
     this.baseUrl = baseUrl.replace(/\/+$/, "").replace(/^http/, "ws");
+    this._authToken = opts.token || null;
     this._ws = null;
     this._pending = new Map();     // id → { resolve, reject, timer }
     this._history = new Map();     // conversationId → messages[]
@@ -56,7 +62,8 @@ class TrinityClient {
             version: "1.0.0",
             platform: process.platform,
             mode: "backend"
-          }
+          },
+          ...(this._authToken ? { auth: { token: this._authToken } } : {})
         }
       });
       this._ws.send(connectFrame, (err) => {
