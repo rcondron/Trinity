@@ -14,8 +14,14 @@ const WebSocket = require("ws");
 const crypto = require("crypto");
 
 class TrinityClient {
-  constructor(baseUrl) {
+  /**
+   * @param {string} baseUrl  Gateway WebSocket URL (e.g. "http://127.0.0.1:18789").
+   * @param {object} [opts]
+   * @param {string} [opts.token]  Gateway shared-secret token for auth.
+   */
+  constructor(baseUrl, opts = {}) {
     this.baseUrl = baseUrl.replace(/\/+$/, "").replace(/^http/, "ws");
+    this._authToken = opts.token || null;
     this._ws = null;
     this._pending = new Map();     // id → { resolve, reject, timer }
     this._history = new Map();     // conversationId → messages[]
@@ -39,14 +45,61 @@ class TrinityClient {
     }
 
     this._ws.on("open", () => {
-      this._connected = true;
-      this._reconnectDelay = 1000;
-      console.log("[TrinityClient] Connected to gateway at", this.baseUrl);
+      // Gateway protocol v3 requires a "connect" handshake as the first frame.
+      // Do not mark as connected until the server acknowledges the connect.
+      const connectId = crypto.randomBytes(8).toString("hex");
+      this._connectId = connectId;
+      const connectFrame = JSON.stringify({
+        type: "req",
+        id: connectId,
+        method: "connect",
+        params: {
+          minProtocol: 3,
+          maxProtocol: 3,
+          client: {
+            id: "gateway-client",
+            displayName: "Trinity Bridge",
+            version: "1.0.0",
+            platform: process.platform,
+            mode: "backend"
+          },
+          ...(this._authToken ? { auth: { token: this._authToken } } : {}),
+          role: "operator",
+          scopes: [
+            "operator.admin",
+            "operator.read",
+            "operator.write",
+            "operator.approvals",
+            "operator.pairing"
+          ]
+        }
+      });
+      this._ws.send(connectFrame, (err) => {
+        if (err) {
+          console.error("[TrinityClient] Failed to send connect handshake:", err.message);
+          return;
+        }
+      });
     });
 
     this._ws.on("message", (raw) => {
       let msg;
       try { msg = JSON.parse(raw.toString()); } catch { return; }
+
+      // Handle the connect handshake response before anything else.
+      if (msg.type === "res" && msg.id === this._connectId) {
+        this._connectId = null;
+        if (msg.ok) {
+          this._connected = true;
+          this._reconnectDelay = 1000;
+          console.log("[TrinityClient] Connected to gateway at", this.baseUrl);
+        } else {
+          const reason = (msg.error && msg.error.message) || "connect rejected";
+          console.error("[TrinityClient] Connect handshake rejected:", reason);
+          this._ws.close();
+        }
+        return;
+      }
 
       if (msg.type === "res" && msg.id && this._pending.has(msg.id)) {
         const p = this._pending.get(msg.id);

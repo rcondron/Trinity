@@ -43,7 +43,7 @@ RUN if [ -n "$MORPHEUS_INSTALL_BROWSER" ]; then \
 
 USER node
 COPY --chown=node:node . .
-RUN pnpm build
+RUN Trinity_A2UI_SKIP_MISSING=1 pnpm build
 
 ENV NODE_ENV=production
 

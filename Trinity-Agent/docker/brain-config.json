@@ -1,26 +1,54 @@
 {
-  "default_collection": "memories",
-  "embedding": {
-    "model": "nomic-embed-text",
-    "dimension": 768
+  "_comment": "This file must stay in sync with Trinity-Brain/config.json schema. See TODO in commit history.",
+  "embedding_model": "nomic-embed-text",
+  "embedding_dim": 768,
+  "compression_model": "qwen2.5:7b",
+  "ollama_url": "http://ollama:11434",
+  "milvus_host": "milvus-standalone",
+  "milvus_port": 19530,
+  "api_host": "0.0.0.0",
+  "api_port": 8100,
+  "recall": {
+    "top_k": 20,
+    "token_budget": 1500,
+    "weights": {
+      "similarity": 0.4,
+      "significance": 0.3,
+      "recency": 0.2,
+      "reference_density": 0.1
+    }
+  },
+  "decay": {
+    "episodic_half_life_days": 14,
+    "semantic_half_life_days": 180,
+    "procedural_half_life_days": 3650
+  },
+  "tiers": {
+    "hot_days": 7,
+    "warm_days": 90,
+    "cool_days": 365
+  },
+  "significance": {
+    "ingest_default": 0.4,
+    "ingest_cap": 0.8,
+    "recall_boost": 0.02,
+    "decay_amount": 0.05,
+    "decay_threshold_days": 90,
+    "floor": 0.1,
+    "contradiction_review_threshold": 0.7
+  },
+  "compression": {
+    "schedule": "0 3 * * 0",
+    "batch_size": 50,
+    "duplicate_threshold": 0.92,
+    "contradiction_threshold": 0.85
   },
   "ner": {
-    "model": "qwen2.5:7b",
-    "extraction_url": "http://ollama:11434",
-    "enabled": true
+    "conservative": true,
+    "model": "qwen2.5:7b"
   },
   "neo4j": {
     "max_entities_per_memory": 50,
     "relationship_threshold": 0.7
-  },
-  "search": {
-    "default_limit": 5,
-    "min_score": 0.5,
-    "rerank_enabled": true
-  },
-  "compression": {
-    "enabled": true,
-    "schedule": "0 3 * * 0",
-    "significance_threshold": 0.3
   }
 }

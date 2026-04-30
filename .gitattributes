@@ -1,1 +1,4 @@
 * text=auto eol=lf
+
+# Ensure Python files stay UTF-8 with LF line endings
+Trinity-Brain/*.py text eol=lf encoding=utf-8
