@@ -43,6 +43,15 @@ Trinity-Test/
 │       ├── create-dmg.sh       macOS build → Trinity.dmg
 │       └── install-linux.sh    Linux install + systemd service
 │
+├── Trinity-Avatar/             Interactive 3D avatar (voice, face, body motion)
+│   ├── packages/               protocol (JSON Schema) + avatar-core (VRM, visemes,
+│   │                           emotions, retargeting, micro-life)
+│   ├── apps/                   web (primary), desktop-overlay (walks on your
+│   │                           screen), mobile (Capacitor)
+│   ├── services/               orchestrator (voice/brain pipeline, talks to the
+│   │                           Bridge) + motion-service (NVIDIA ARDY / clips)
+│   └── docs/                   architecture, ADRs, per-platform guides
+│
 ├── Trinity-WebUI/              Browser interface (static HTML/CSS/JS)
 │   ├── Setup.html              Onboarding wizard (8 steps)
 │   ├── pages/
@@ -137,6 +146,19 @@ Open `Trinity-WebUI/pages/chat.html` in a browser. Messages flow:
 ```
 Browser → Bridge (HTTP) → Gateway (WebSocket RPC) → LLM Provider
 ```
+
+### 4. Or talk to Trinity face to face — the 3D avatar
+
+```bash
+cd Trinity-Avatar && pnpm install && pnpm dev   # http://localhost:5173
+```
+
+A full-body 3D avatar with real-time voice, lip sync, expressions and body
+language. When the Bridge is running it automatically routes conversation
+through your Trinity agent; with zero configuration it runs a demo persona.
+Also targets VR/AR, Looking Glass, volumetric displays, a desktop overlay
+(the avatar walks around on your screen) and mobile — see
+[Trinity-Avatar/README.md](Trinity-Avatar/README.md).
 
 ## Architecture
 

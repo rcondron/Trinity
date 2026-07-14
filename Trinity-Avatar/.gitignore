@@ -21,6 +21,8 @@ __pycache__/
 # Downloaded assets & model weights (fetched by scripts/, never vendored)
 assets/avatars/*.vrm
 assets/avatars/*.glb
+apps/web/public/avatars/*.vrm
+apps/web/public/avatars/*.glb
 services/motion-service/weights/
 
 # Editor / OS

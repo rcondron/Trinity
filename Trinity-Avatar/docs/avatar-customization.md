@@ -1,0 +1,56 @@
+# Avatar customization
+
+## Swap the skin (no code)
+
+Three ways, in order of convenience:
+
+1. **Drag & drop** a `.vrm` or `.glb` file anywhere onto the running app.
+2. **Settings panel** (⚙) → *Avatar skin* file picker.
+3. **Default at boot**: put a file at `apps/web/public/avatars/default.vrm`
+   (e.g. via `scripts/setup_avatar.sh <url>`), or point `VITE_DEFAULT_AVATAR`
+   at any URL the web app can fetch.
+
+With no file present, the built-in procedural hologram avatar is used.
+
+## Supported formats
+
+| Format | Bones | Face |
+|---|---|---|
+| **VRM 1.0** (canonical) | VRM humanoid (normalized) | VRM expressions; per-ARKit custom expressions used directly when present |
+| **VRM 0.x** | via three-vrm compatibility | same |
+| **GLB** (Ready Player Me, Mixamo-rigged, MetaHuman export) | `Hips/Spine/LeftArm…` or `mixamorig` names | ARKit-52 morph targets by name |
+
+Sources for models: VRoid Studio (export VRM), VRoid Hub, Ready Player Me
+(GLB with ARKit morphs), or any DCC via the VRM Blender/Unity exporters.
+**Check the license of anything you ship** — record it in CREDITS.md.
+
+## Mapping custom blendshapes
+
+The animation stack outputs ARKit-52 weights (`packages/avatar-core/src/face/arkit.ts`).
+
+- **VRM**: if your model's expressions are named exactly like ARKit shapes
+  (`jawOpen`, `mouthSmileLeft`, …) they're driven directly. Otherwise weights
+  fold down onto VRM presets (`aa`, `ou`, `blinkLeft`, `happy`, …) via
+  `ARKIT_TO_VRM_PRESET` in `src/vrm/loader.ts` — extend that table for
+  model-specific tweaks.
+- **GLB**: morph targets whose names match ARKit shapes are driven 1:1.
+  Rename morphs in Blender if your pipeline uses different names.
+
+## Retargeting notes
+
+- Body motion arrives on the SOMA-24 skeleton and is mapped per
+  `SOMA_TO_VRM` (`packages/protocol/src/skeleton.ts`).
+- Root translation scales by your avatar's hip height automatically — tiny
+  and giant avatars both walk correctly.
+- Joint clamps (`JOINT_LIMITS` in `src/retarget/retarget.ts`) guard against
+  self-intersection; loosen them for stylized rigs with long limbs.
+- Foot locking thresholds (`DEFAULT_FOOT_LOCKER`) assume roughly human
+  proportions; raise `plantHeight` for big-footed characters.
+
+## The procedural fallback avatar
+
+`packages/avatar-core/src/vrm/procedural.ts` builds the hologram humanoid from
+primitives. It implements the same `AvatarRig` interface as VRM skins, so it's
+also the reference for writing an entirely custom rig (robot, non-humanoid…):
+implement `getBone`, `applyFace`, `update`, `hipsRestY`, and everything else —
+voice, lips, gestures, platforms — just works.

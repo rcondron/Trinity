@@ -16,6 +16,7 @@ you speak ──► STT ──► brain (Trinity / Hermes / demo) ──┬─�
 ```bash
 cd Trinity-Avatar
 pnpm install
+./scripts/setup_avatar.sh   # optional: downloads a CC0 VRM (else: built-in hologram avatar)
 pnpm dev            # web app on http://localhost:5173 + orchestrator on :8790
 ```
 
