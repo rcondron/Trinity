@@ -9,11 +9,13 @@ import { SpeechInput } from './stt.js';
 import { SessionClient } from './session.js';
 import { MotionSource } from './motion.js';
 import { Hud, loadSettings } from './ui.js';
+import { currentPlatformId, gotoPlatform, PLATFORM_LIST, resolvePlatform } from './platforms/index.js';
 
 // ── Composition root ─────────────────────────────────────────────────────────
 const settings = loadSettings();
+const platformId = currentPlatformId();
 const canvas = document.getElementById('scene') as HTMLCanvasElement;
-const bundle = createScene(canvas);
+const bundle = createScene(canvas, { transparent: platformId === 'overlay' });
 const animator = new Animator();
 const avatars = new AvatarManager(bundle.scene, animator);
 const debug = new DebugOverlay(document.getElementById('debug-overlay')!);
@@ -36,8 +38,9 @@ const hud = new Hud({
     hud.setMicState(on, on);
   },
   onAvatarFile: (file) => void avatars.loadFromFile(file),
-  onPlatformSelect: () => {}, // platform adapters arrive in Phase 4
+  onPlatformSelect: (id) => gotoPlatform(id),
 });
+hud.buildPlatformsPanel(PLATFORM_LIST, platformId);
 
 const stt = new SpeechInput({
   onPartial: () => bargeIn(),
@@ -216,6 +219,21 @@ motion.onFirstFrame = () => debug.markLatency('motion_first_frame', 0);
 
 hud.setPill('link', 'orchestrator: connecting…', false);
 
+// ── Platform adapter (default = plain web render) ───────────────────────────
+const platform = resolvePlatform(platformId);
+let renderFrame: (dt: number) => void = () => bundle.renderer.render(bundle.scene, bundle.camera);
+if (platform) {
+  renderFrame = await platform.activate({
+    bundle,
+    getAvatarRoot: () => avatars.current?.root ?? null,
+  });
+  debug.extra.set('platform', platform.id);
+}
+if (platformId === 'overlay') {
+  // The overlay's whole point: the avatar strolls across your screen.
+  motion.locomotion('pace', 0.4);
+}
+
 let last = performance.now();
 bundle.renderer.setAnimationLoop(() => {
   const now = performance.now();
@@ -224,7 +242,7 @@ bundle.renderer.setAnimationLoop(() => {
 
   motion.update(dt);
   animator.update(dt);
-  bundle.controls.update();
+  if (bundle.controls.enabled) bundle.controls.update();
   debug.tick(animator);
-  bundle.renderer.render(bundle.scene, bundle.camera);
+  renderFrame(dt);
 });

@@ -1,0 +1,16 @@
+{
+  "appId": "ai.morpheus.trinity.avatar",
+  "appName": "Trinity Avatar",
+  "webDir": "../web/dist",
+  "server": {
+    "androidScheme": "https"
+  },
+  "ios": {
+    "contentInset": "always"
+  },
+  "plugins": {
+    "CapacitorHttp": {
+      "enabled": false
+    }
+  }
+}
