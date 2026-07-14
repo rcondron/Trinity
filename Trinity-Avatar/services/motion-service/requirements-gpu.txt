@@ -1,0 +1,5 @@
+# GPU extras for the ARDY backend (NVIDIA GPU required).
+# Installed by scripts/setup_ardy.sh — NOT part of the default install.
+torch>=2.4
+# ARDY itself is installed from source by the setup script:
+#   pip install git+https://github.com/nv-tlabs/ardy
