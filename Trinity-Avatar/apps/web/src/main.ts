@@ -56,6 +56,7 @@ const stt = new SpeechInput({
   },
 });
 
+hud.setPill('link', 'orchestrator: connecting…', false);
 const session = new SessionClient(settings.orchestratorUrl, {
   onMessage: handleServerMessage,
   onConnectionChange: (connected) => {
@@ -216,8 +217,6 @@ motion.onBackendChange = (label) => {
 };
 motion.onBackendChange(motion.backendLabel);
 motion.onFirstFrame = () => debug.markLatency('motion_first_frame', 0);
-
-hud.setPill('link', 'orchestrator: connecting…', false);
 
 // ── Platform adapter (default = plain web render) ───────────────────────────
 const platform = resolvePlatform(platformId);
