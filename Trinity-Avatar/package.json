@@ -1,0 +1,23 @@
+{
+  "name": "trinity-avatar",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Interactive 3D avatar front-end for Trinity — voice, face, and full-body motion across web, XR, holographic and volumetric displays.",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "pnpm --parallel --filter @trinity-avatar/web --filter @trinity-avatar/orchestrator dev",
+    "dev:web": "pnpm --filter @trinity-avatar/web dev",
+    "dev:orchestrator": "pnpm --filter @trinity-avatar/orchestrator dev",
+    "build": "pnpm -r build",
+    "test": "pnpm -r test",
+    "lint": "pnpm -r lint",
+    "format": "prettier --write \"**/*.{ts,tsx,js,json,md,css,html}\"",
+    "typecheck": "pnpm -r typecheck"
+  },
+  "devDependencies": {
+    "prettier": "^3.3.3"
+  }
+}
