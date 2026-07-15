@@ -1,0 +1,48 @@
+name: avatar-ci
+
+on:
+  push:
+    branches: [main]
+    paths: ['Trinity-Avatar/**', '.github/workflows/avatar-ci.yml']
+  pull_request:
+    paths: ['Trinity-Avatar/**', '.github/workflows/avatar-ci.yml']
+
+defaults:
+  run:
+    working-directory: Trinity-Avatar
+
+jobs:
+  node:
+    name: lint · test · build (Node)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: Trinity-Avatar/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+      - run: pnpm test
+      - run: pnpm build
+
+  python:
+    name: ruff · pytest (motion-service)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: Trinity-Avatar/services/motion-service
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+          cache-dependency-path: Trinity-Avatar/services/motion-service/requirements*.txt
+      - run: pip install -r requirements.txt -r requirements-dev.txt
+      - run: ruff check .
+      - run: pytest -q

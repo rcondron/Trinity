@@ -1,0 +1,26 @@
+{
+  "name": "@trinity-avatar/mobile",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Capacitor wrapper — Trinity Avatar as a native iOS/Android app",
+  "scripts": {
+    "build:web": "pnpm --filter @trinity-avatar/web build",
+    "sync": "cap sync",
+    "add:android": "cap add android",
+    "add:ios": "cap add ios",
+    "open:android": "cap open android",
+    "open:ios": "cap open ios",
+    "test": "node -e \"JSON.parse(require('fs').readFileSync('capacitor.config.json'))\"",
+    "lint": "node -e \"JSON.parse(require('fs').readFileSync('capacitor.config.json'))\"",
+    "typecheck": "node -e \"JSON.parse(require('fs').readFileSync('capacitor.config.json'))\"",
+    "build": "node -e \"JSON.parse(require('fs').readFileSync('capacitor.config.json'))\""
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^6.2.0"
+  },
+  "dependencies": {
+    "@capacitor/android": "^6.2.0",
+    "@capacitor/core": "^6.2.0",
+    "@capacitor/ios": "^6.2.0"
+  }
+}

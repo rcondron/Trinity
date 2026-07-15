@@ -1,0 +1,18 @@
+{
+  "name": "@trinity-avatar/desktop-overlay",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Transparent always-on-top Electron shell — Trinity walks around on your screen",
+  "main": "main.cjs",
+  "scripts": {
+    "start": "electron .",
+    "start:built": "TRINITY_AVATAR_URL=file://$PWD/../web/dist/index.html?platform=overlay electron .",
+    "test": "node --check main.cjs",
+    "typecheck": "node --check main.cjs",
+    "lint": "node --check main.cjs",
+    "build": "node --check main.cjs"
+  },
+  "devDependencies": {
+    "electron": "^33.2.0"
+  }
+}

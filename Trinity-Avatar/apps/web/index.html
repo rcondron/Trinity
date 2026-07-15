@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#04100b" />
+    <title>Trinity Avatar</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧬</text></svg>" />
+  </head>
+  <body>
+    <div id="app">
+      <canvas id="scene"></canvas>
+
+      <div id="hud">
+        <div id="topbar">
+          <div id="brand">TRINITY<span>AVATAR</span></div>
+          <div id="status-pills"></div>
+          <div id="topbar-actions">
+            <button id="btn-platforms" title="Platforms">◫</button>
+            <button id="btn-settings" title="Settings">⚙</button>
+          </div>
+        </div>
+
+        <div id="caption"></div>
+
+        <div id="dock">
+          <button id="btn-mic" title="Hold to talk (or click to toggle open mic)">🎤</button>
+          <form id="chat-form" autocomplete="off">
+            <input id="chat-input" placeholder="Type to Trinity… (or use the mic)" />
+            <button type="submit">↩</button>
+          </form>
+        </div>
+      </div>
+
+      <div id="debug-overlay" class="hidden"></div>
+
+      <div id="panel-settings" class="panel hidden">
+        <h2>Settings <button class="panel-close" data-close="panel-settings">✕</button></h2>
+        <div id="settings-body"></div>
+      </div>
+
+      <div id="panel-platforms" class="panel hidden">
+        <h2>Platforms <button class="panel-close" data-close="panel-platforms">✕</button></h2>
+        <div id="platforms-body"></div>
+      </div>
+
+      <div id="drop-hint" class="hidden">Drop a .vrm / .glb avatar to swap the skin</div>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

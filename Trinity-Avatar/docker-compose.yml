@@ -1,0 +1,58 @@
+# Trinity Avatar services. CPU-only by default (ARDY falls back to clips);
+# run with the gpu profile on an NVIDIA box for real ARDY motion:
+#   docker compose --profile gpu up motion-service-gpu orchestrator
+services:
+  orchestrator:
+    build:
+      context: .
+      dockerfile: services/orchestrator/Dockerfile
+    ports:
+      - '8790:8790'
+    environment:
+      - ORCHESTRATOR_PORT=8790
+      - BRAIN_BACKEND=${BRAIN_BACKEND:-}
+      - HERMES_BASE_URL=${HERMES_BASE_URL:-}
+      - HERMES_API_KEY=${HERMES_API_KEY:-}
+      - HERMES_MODEL=${HERMES_MODEL:-NousResearch/Hermes-3-Llama-3.1-8B}
+      - ELEVENLABS_API_KEY=${ELEVENLABS_API_KEY:-}
+      - ELEVENLABS_VOICE_ID=${ELEVENLABS_VOICE_ID:-21m00Tcm4TlvDq8ikWAM}
+      - ELEVENLABS_MODEL_ID=${ELEVENLABS_MODEL_ID:-eleven_turbo_v2_5}
+      - ELEVENLABS_OUTPUT_FORMAT=${ELEVENLABS_OUTPUT_FORMAT:-pcm_16000}
+      # host.docker.internal reaches the Trinity Bridge on the host (:4711)
+      - TRINITY_BRIDGE_URL=${TRINITY_BRIDGE_URL:-http://host.docker.internal:4711}
+      - TRINITY_BRIDGE_TOKEN=${TRINITY_BRIDGE_TOKEN:-}
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
+
+  motion-service:
+    build:
+      context: .
+      dockerfile: services/motion-service/Dockerfile
+    ports:
+      - '8791:8791'
+    environment:
+      - MOTION_SERVICE_PORT=8791
+      - MOTION_BACKEND=${MOTION_BACKEND:-auto}
+      - MOTION_FPS=${MOTION_FPS:-30}
+
+  motion-service-gpu:
+    profiles: ['gpu']
+    build:
+      context: .
+      dockerfile: services/motion-service/Dockerfile
+    ports:
+      - '8791:8791'
+    environment:
+      - MOTION_SERVICE_PORT=8791
+      - MOTION_BACKEND=ardy
+      - MOTION_FPS=30
+      - ARDY_CHECKPOINT_DIR=/weights/ardy
+    volumes:
+      - ./services/motion-service/weights:/weights
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]

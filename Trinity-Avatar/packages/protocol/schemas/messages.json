@@ -1,0 +1,344 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://trinity.dev/avatar/messages.json",
+  "title": "Trinity Avatar protocol messages",
+  "oneOf": [
+    { "$ref": "#/$defs/ClientHello" },
+    { "$ref": "#/$defs/UserText" },
+    { "$ref": "#/$defs/UserTranscript" },
+    { "$ref": "#/$defs/Interrupt" },
+    { "$ref": "#/$defs/ServerStatus" },
+    { "$ref": "#/$defs/AgentTextDelta" },
+    { "$ref": "#/$defs/AgentReply" },
+    { "$ref": "#/$defs/TtsAudioChunk" },
+    { "$ref": "#/$defs/TtsTimestamps" },
+    { "$ref": "#/$defs/TtsEnd" },
+    { "$ref": "#/$defs/Emotion" },
+    { "$ref": "#/$defs/Gesture" },
+    { "$ref": "#/$defs/Locomotion" },
+    { "$ref": "#/$defs/Gaze" },
+    { "$ref": "#/$defs/LatencyMark" },
+    { "$ref": "#/$defs/ErrorMessage" },
+    { "$ref": "#/$defs/MotionRequest" },
+    { "$ref": "#/$defs/MotionStop" },
+    { "$ref": "#/$defs/PoseFrame" },
+    { "$ref": "#/$defs/MotionStatus" }
+  ],
+  "$defs": {
+    "EmotionLabel": {
+      "type": "string",
+      "enum": [
+        "neutral",
+        "happy",
+        "thoughtful",
+        "surprised",
+        "concerned",
+        "amused",
+        "excited",
+        "sad"
+      ]
+    },
+    "Vec3": {
+      "type": "array",
+      "items": { "type": "number" },
+      "minItems": 3,
+      "maxItems": 3
+    },
+    "Quat": {
+      "type": "array",
+      "items": { "type": "number" },
+      "minItems": 4,
+      "maxItems": 4
+    },
+
+    "ClientHello": {
+      "type": "object",
+      "properties": {
+        "type": { "const": "client_hello" },
+        "sessionId": { "type": "string" },
+        "capabilities": {
+          "type": "object",
+          "properties": {
+            "audioFormats": { "type": "array", "items": { "type": "string" } },
+            "sttMode": { "type": "string", "enum": ["client", "server", "none"] }
+          },
+          "additionalProperties": true
+        }
+      },
+      "required": ["type"],
+      "additionalProperties": false
+    },
+
+    "UserText": {
+      "type": "object",
+      "description": "Typed chat message from the user (text-chat fallback UI).",
+      "properties": {
+        "type": { "const": "user_text" },
+        "text": { "type": "string", "minLength": 1 },
+        "tClientSent": { "type": "number" }
+      },
+      "required": ["type", "text"],
+      "additionalProperties": false
+    },
+
+    "UserTranscript": {
+      "type": "object",
+      "description": "Speech transcript produced by client-side STT (final or partial).",
+      "properties": {
+        "type": { "const": "user_transcript" },
+        "text": { "type": "string" },
+        "final": { "type": "boolean" },
+        "tSpeechEnd": { "type": "number" }
+      },
+      "required": ["type", "text", "final"],
+      "additionalProperties": false
+    },
+
+    "Interrupt": {
+      "type": "object",
+      "description": "Barge-in: user started speaking; stop TTS and gestures gracefully.",
+      "properties": {
+        "type": { "const": "interrupt" },
+        "reason": { "type": "string", "enum": ["barge_in", "user_cancel"] }
+      },
+      "required": ["type"],
+      "additionalProperties": false
+    },
+
+    "ServerStatus": {
+      "type": "object",
+      "description": "Which backends are live vs fallback; drives the debug overlay.",
+      "properties": {
+        "type": { "const": "server_status" },
+        "brain": { "type": "string", "enum": ["hermes", "trinity", "demo"] },
+        "tts": { "type": "string", "enum": ["elevenlabs", "browser"] },
+        "stt": { "type": "string", "enum": ["elevenlabs", "browser", "none"] },
+        "motion": { "type": "string", "enum": ["ardy", "clips", "client"] },
+        "detail": { "type": "string" }
+      },
+      "required": ["type", "brain", "tts"],
+      "additionalProperties": false
+    },
+
+    "AgentTextDelta": {
+      "type": "object",
+      "properties": {
+        "type": { "const": "agent_text_delta" },
+        "text": { "type": "string" },
+        "turnId": { "type": "string" }
+      },
+      "required": ["type", "text", "turnId"],
+      "additionalProperties": false
+    },
+
+    "AgentReply": {
+      "type": "object",
+      "description": "Complete structured reply from the brain for one turn.",
+      "properties": {
+        "type": { "const": "agent_reply" },
+        "turnId": { "type": "string" },
+        "text": { "type": "string" },
+        "emotion": { "$ref": "#/$defs/EmotionLabel" },
+        "gestures": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "prompt": { "type": "string" },
+              "atChar": { "type": "integer", "minimum": 0 }
+            },
+            "required": ["prompt"],
+            "additionalProperties": false
+          }
+        },
+        "locomotion": {
+          "type": "object",
+          "properties": {
+            "mode": { "type": "string", "enum": ["idle", "pace", "approach", "retreat", "wander"] },
+            "speed": { "type": "number", "minimum": 0, "maximum": 2 }
+          },
+          "required": ["mode"],
+          "additionalProperties": false
+        },
+        "gaze": {
+          "type": "object",
+          "properties": {
+            "target": { "type": "string", "enum": ["user", "away", "up_thinking", "down"] }
+          },
+          "required": ["target"],
+          "additionalProperties": false
+        }
+      },
+      "required": ["type", "turnId", "text"],
+      "additionalProperties": false
+    },
+
+    "TtsAudioChunk": {
+      "type": "object",
+      "description": "Base64 PCM (s16le) audio chunk. sampleRate constant per turn.",
+      "properties": {
+        "type": { "const": "tts_audio_chunk" },
+        "turnId": { "type": "string" },
+        "seq": { "type": "integer", "minimum": 0 },
+        "audioB64": { "type": "string" },
+        "sampleRate": { "type": "integer" },
+        "format": { "type": "string", "enum": ["pcm_s16le", "mp3"] }
+      },
+      "required": ["type", "turnId", "seq", "audioB64", "sampleRate", "format"],
+      "additionalProperties": false
+    },
+
+    "TtsTimestamps": {
+      "type": "object",
+      "description": "Character-level timestamps (seconds, relative to turn audio start) driving lip sync.",
+      "properties": {
+        "type": { "const": "tts_timestamps" },
+        "turnId": { "type": "string" },
+        "chars": { "type": "array", "items": { "type": "string" } },
+        "startTimes": { "type": "array", "items": { "type": "number" } },
+        "durations": { "type": "array", "items": { "type": "number" } }
+      },
+      "required": ["type", "turnId", "chars", "startTimes", "durations"],
+      "additionalProperties": false
+    },
+
+    "TtsEnd": {
+      "type": "object",
+      "properties": {
+        "type": { "const": "tts_end" },
+        "turnId": { "type": "string" }
+      },
+      "required": ["type", "turnId"],
+      "additionalProperties": false
+    },
+
+    "Emotion": {
+      "type": "object",
+      "properties": {
+        "type": { "const": "emotion" },
+        "label": { "$ref": "#/$defs/EmotionLabel" },
+        "intensity": { "type": "number", "minimum": 0, "maximum": 1 }
+      },
+      "required": ["type", "label"],
+      "additionalProperties": false
+    },
+
+    "Gesture": {
+      "type": "object",
+      "description": "Behavior prompt for the motion backend, e.g. 'wave hello'.",
+      "properties": {
+        "type": { "const": "gesture" },
+        "prompt": { "type": "string", "minLength": 1 },
+        "turnId": { "type": "string" }
+      },
+      "required": ["type", "prompt"],
+      "additionalProperties": false
+    },
+
+    "Locomotion": {
+      "type": "object",
+      "properties": {
+        "type": { "const": "locomotion" },
+        "mode": { "type": "string", "enum": ["idle", "pace", "approach", "retreat", "wander"] },
+        "speed": { "type": "number", "minimum": 0, "maximum": 2 }
+      },
+      "required": ["type", "mode"],
+      "additionalProperties": false
+    },
+
+    "Gaze": {
+      "type": "object",
+      "properties": {
+        "type": { "const": "gaze" },
+        "target": { "type": "string", "enum": ["user", "away", "up_thinking", "down"] }
+      },
+      "required": ["type", "target"],
+      "additionalProperties": false
+    },
+
+    "LatencyMark": {
+      "type": "object",
+      "description": "Instrumentation: time (ms) spent in a pipeline stage for a turn.",
+      "properties": {
+        "type": { "const": "latency_mark" },
+        "turnId": { "type": "string" },
+        "stage": {
+          "type": "string",
+          "enum": ["stt", "brain_first_token", "brain_total", "tts_first_audio", "motion_first_frame"]
+        },
+        "ms": { "type": "number", "minimum": 0 }
+      },
+      "required": ["type", "turnId", "stage", "ms"],
+      "additionalProperties": false
+    },
+
+    "ErrorMessage": {
+      "type": "object",
+      "properties": {
+        "type": { "const": "error" },
+        "code": { "type": "string" },
+        "message": { "type": "string" }
+      },
+      "required": ["type", "code", "message"],
+      "additionalProperties": false
+    },
+
+    "MotionRequest": {
+      "type": "object",
+      "description": "Client/orchestrator → motion-service: start streaming a behavior.",
+      "properties": {
+        "type": { "const": "motion_request" },
+        "prompt": { "type": "string", "minLength": 1 },
+        "loop": { "type": "boolean" },
+        "layer": { "type": "string", "enum": ["base", "gesture"] },
+        "requestId": { "type": "string" }
+      },
+      "required": ["type", "prompt"],
+      "additionalProperties": false
+    },
+
+    "MotionStop": {
+      "type": "object",
+      "description": "Stop a gesture layer (e.g. on barge-in). Blends out, not a hard cut.",
+      "properties": {
+        "type": { "const": "motion_stop" },
+        "layer": { "type": "string", "enum": ["base", "gesture", "all"] },
+        "fadeMs": { "type": "number", "minimum": 0 }
+      },
+      "required": ["type", "layer"],
+      "additionalProperties": false
+    },
+
+    "PoseFrame": {
+      "type": "object",
+      "description": "One skeletal pose frame in the SOMA-24 convention (see skeleton.ts). Joint rotations are local-space unit quaternions [x,y,z,w] ordered exactly as SOMA_JOINTS; rootPos is world-space pelvis translation in meters.",
+      "properties": {
+        "type": { "const": "pose_frame" },
+        "t": { "type": "number", "description": "Seconds since motion stream start." },
+        "layer": { "type": "string", "enum": ["base", "gesture"] },
+        "rootPos": { "$ref": "#/$defs/Vec3" },
+        "rotations": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/Quat" },
+          "minItems": 24,
+          "maxItems": 24
+        },
+        "weight": { "type": "number", "minimum": 0, "maximum": 1 }
+      },
+      "required": ["type", "t", "layer", "rootPos", "rotations"],
+      "additionalProperties": false
+    },
+
+    "MotionStatus": {
+      "type": "object",
+      "properties": {
+        "type": { "const": "motion_status" },
+        "backend": { "type": "string", "enum": ["ardy", "clips"] },
+        "fps": { "type": "number" },
+        "detail": { "type": "string" }
+      },
+      "required": ["type", "backend"],
+      "additionalProperties": false
+    }
+  }
+}
