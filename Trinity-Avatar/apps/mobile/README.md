@@ -1,38 +1,69 @@
-# Trinity Avatar — Mobile (Capacitor)
+# Trinity Avatar — Android / iOS (Capacitor)
 
-Native iOS/Android wrapper around the web app. The web build is the UI; the
-mic uses the platform's speech recognition through the WebView.
+Native app wrapper. On the phone you get: **Trinity standing in an empty
+space, voice-first** — tap the mic, talk, she talks back. Speech recognition
+and speech synthesis run through native Android services (Android WebViews
+don't ship the Web Speech API), wired via:
 
-## Build
+- `@capacitor-community/speech-recognition` — mic → text
+- `@capacitor-community/text-to-speech` — her voice when no ElevenLabs key
+
+The `android/` project is **committed and ready to build** (mic permissions,
+cleartext LAN networking, and speech-service visibility already configured).
+
+## Get the APK (no Android Studio needed)
+
+The `android-apk` GitHub Actions workflow builds a sideloadable debug APK on
+every push (or run it manually from the Actions tab) → download the
+`trinity-avatar-debug-apk` artifact.
+
+Install on the phone (e.g. HTC U23 Pro):
+
+1. Copy `app-debug.apk` to the phone (USB, Drive, etc.) and open it —
+   allow "install unknown apps" when prompted. Or via adb:
+   `adb install app-debug.apk`.
+2. First mic tap → grant the microphone permission.
+
+## Build locally instead
 
 ```bash
 cd Trinity-Avatar
-pnpm --filter @trinity-avatar/web build          # produces apps/web/dist
+pnpm install
+./scripts/setup_avatar.sh                 # optional: bundle the CC0 VRM
+pnpm --filter @trinity-avatar/web build
 cd apps/mobile
-pnpm add:android    # once — generates android/ (needs Android Studio)
-pnpm add:ios        # once — generates ios/ (needs Xcode, macOS)
-pnpm sync           # copy the web build into the native projects
-pnpm open:android   # or open:ios — then run from the IDE
+pnpm exec cap sync android
+cd android && ./gradlew assembleDebug     # needs Android SDK 34
+# → app/build/outputs/apk/debug/app-debug.apk
 ```
 
-## Pointing at your services
+Or open `apps/mobile/android/` in Android Studio and press Run.
 
-On a device, `localhost` is the phone itself. Open Settings (⚙ in the app)
-and set the orchestrator/motion URLs to your machine's LAN address, e.g.
-`ws://192.168.1.20:8790/session` — or run the services on a host the phone
-can reach. Values persist in localStorage.
+## Modes on the phone
 
-For live-reload dev, add to `capacitor.config.json`:
+- **Out of the box (no setup)**: fully standalone — the avatar stands in
+  empty space, listens via native speech recognition, and the on-device
+  fallback persona answers through native TTS. Status pills mark
+  everything as fallback.
+- **Full Trinity**: run the services on your PC and point the app at them —
+  ⚙ Settings →
+  - Orchestrator: `ws://<your-PC-LAN-IP>:8790/session`
+  - Motion: `ws://<your-PC-LAN-IP>:8791/ws`
 
-```json
-"server": { "url": "http://YOUR_LAN_IP:5173", "cleartext": true }
-```
+  With the Trinity Bridge running on the PC, the phone avatar talks to your
+  actual Trinity agent ("she does everything in the background"); add an
+  ElevenLabs key on the PC for her real voice + timestamped lip sync.
+  Phone and PC must share a network; URLs persist on the phone.
 
-## Permissions
+## UI notes
 
-Microphone permission is requested by the WebView on first mic use.
-On iOS add `NSMicrophoneUsageDescription` and `NSSpeechRecognitionUsageDescription`
-to `ios/App/App/Info.plist` (Capacitor scaffolds sensible defaults).
+- Big mic button: tap = open mic (continuous), hold = push-to-talk.
+- ⌨ button shows the text box if you'd rather type.
+- `?env=stage` in a browser restores the grid/stage look; the app defaults
+  to the clean empty-space environment.
 
-Generated `android/` and `ios/` directories are intentionally gitignored;
-they are reproducible via `cap add`.
+## iOS
+
+`pnpm add:ios && pnpm sync` on macOS (needs Xcode). Add
+`NSMicrophoneUsageDescription` + `NSSpeechRecognitionUsageDescription` to
+`Info.plist`. The generated `ios/` directory is not committed.

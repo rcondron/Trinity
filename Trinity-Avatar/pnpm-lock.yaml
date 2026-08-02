@@ -20,6 +20,12 @@ importers:
 
   apps/mobile:
     dependencies:
+      '@capacitor-community/speech-recognition':
+        specifier: ^6.0.0
+        version: 6.0.1(@capacitor/core@6.2.1)
+      '@capacitor-community/text-to-speech':
+        specifier: ^5.0.0
+        version: 5.1.0(@capacitor/core@6.2.1)
       '@capacitor/android':
         specifier: ^6.2.0
         version: 6.2.1(@capacitor/core@6.2.1)
@@ -126,6 +132,16 @@ importers:
         version: 2.1.9(@types/node@22.20.1)
 
 packages:
+
+  '@capacitor-community/speech-recognition@6.0.1':
+    resolution: {integrity: sha512-/SBP+AbW9k9AWv8UEhPoIy10DvRIJV490oPswSwmY7bQdl43XYSZAG3iIABU6CfPRm0PZoIyeSco34J8vaqf2w==}
+    peerDependencies:
+      '@capacitor/core': ^6.0.0
+
+  '@capacitor-community/text-to-speech@5.1.0':
+    resolution: {integrity: sha512-Pe8i2M6bSlTPR83UeP7H7SouCdvQ6cAMq+nMatCuXKAd9rdRmyzdkurNj7EsM0FyjfAmGInhv9yhmVd3jNWzQQ==}
+    peerDependencies:
+      '@capacitor/core': ^6.0.0
 
   '@capacitor/android@6.2.1':
     resolution: {integrity: sha512-8gd4CIiQO5LAIlPIfd5mCuodBRxMMdZZEdj8qG8m+dQ1sQ2xyemVpzHmRK8qSCHorsBUCg3D62j2cp6bEBAkdw==}
@@ -1498,6 +1514,14 @@ packages:
     resolution: {integrity: sha512-p4a9I6X6nu6IhoGmBqAcbJy1mlC4j27vEPZX9F4L4/vZT3Lyq1VkFHw/V/PUcB9Buo+DG3iHkT0x3Qya58zc3g==}
 
 snapshots:
+
+  '@capacitor-community/speech-recognition@6.0.1(@capacitor/core@6.2.1)':
+    dependencies:
+      '@capacitor/core': 6.2.1
+
+  '@capacitor-community/text-to-speech@5.1.0(@capacitor/core@6.2.1)':
+    dependencies:
+      '@capacitor/core': 6.2.1
 
   '@capacitor/android@6.2.1(@capacitor/core@6.2.1)':
     dependencies:

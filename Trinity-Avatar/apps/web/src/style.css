@@ -273,6 +273,40 @@ body.overlay-mode #app {
   display: none !important;
 }
 
+/* ── Voice-first mode (native app / ?ui=voice): big mic, keyboard on demand ── */
+#btn-keyboard {
+  display: none;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  color: var(--text);
+  border-radius: 50%;
+  width: 44px;
+  height: 44px;
+  font-size: 16px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.voice-first #btn-keyboard {
+  display: block;
+}
+.voice-first #chat-form {
+  display: none;
+}
+.voice-first.show-keyboard #chat-form {
+  display: flex;
+}
+.voice-first #btn-mic {
+  width: 72px;
+  height: 72px;
+  font-size: 30px;
+}
+.voice-first #dock {
+  margin-bottom: 8px;
+}
+.voice-first #brand span {
+  display: none;
+}
+
 @media (max-width: 640px) {
   #chat-form {
     width: auto;

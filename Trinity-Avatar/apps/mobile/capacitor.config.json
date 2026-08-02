@@ -3,7 +3,8 @@
   "appName": "Trinity Avatar",
   "webDir": "../web/dist",
   "server": {
-    "androidScheme": "https"
+    "androidScheme": "http",
+    "cleartext": true
   },
   "ios": {
     "contentInset": "always"

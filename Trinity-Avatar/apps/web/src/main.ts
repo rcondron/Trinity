@@ -5,24 +5,35 @@ import { createScene } from './scene.js';
 import { AvatarManager } from './avatar.js';
 import { DebugOverlay } from './debug.js';
 import { AudioPlayer, BrowserTts } from './audio.js';
-import { SpeechInput } from './stt.js';
+import { SpeechInput, type SttHandlers } from './stt.js';
 import { SessionClient } from './session.js';
 import { MotionSource } from './motion.js';
 import { Hud, loadSettings } from './ui.js';
 import { currentPlatformId, gotoPlatform, PLATFORM_LIST, resolvePlatform } from './platforms/index.js';
+import { isNativeApp, NativeSpeechInput, NativeTts } from './native.js';
 
 // ── Composition root ─────────────────────────────────────────────────────────
 const settings = loadSettings();
 const platformId = currentPlatformId();
+const urlParams = new URLSearchParams(location.search);
+// Native app default: the avatar standing in an empty space, voice-first.
+const voidEnv = urlParams.get('env') === 'void' || (isNativeApp && urlParams.get('env') !== 'stage');
+const voiceFirst = urlParams.get('ui') === 'voice' || isNativeApp;
+if (voiceFirst) document.body.classList.add('voice-first');
 const canvas = document.getElementById('scene') as HTMLCanvasElement;
-const bundle = createScene(canvas, { transparent: platformId === 'overlay' });
+const bundle = createScene(canvas, {
+  transparent: platformId === 'overlay',
+  environment: voidEnv ? 'void' : 'stage',
+});
 const animator = new Animator();
 const avatars = new AvatarManager(bundle.scene, animator);
 const debug = new DebugOverlay(document.getElementById('debug-overlay')!);
 debug.rendererBackend = bundle.backend;
 
 const audio = new AudioPlayer();
-const browserTts = new BrowserTts();
+// Inside the native app, WebView speech APIs don't exist — use the
+// Capacitor plugins; same interface either way.
+const browserTts = isNativeApp ? new NativeTts() : new BrowserTts();
 const motion = new MotionSource(settings.motionUrl, animator);
 
 let serverTtsActive = false; // does the current turn stream ElevenLabs audio?
@@ -42,19 +53,24 @@ const hud = new Hud({
 });
 hud.buildPlatformsPanel(PLATFORM_LIST, platformId);
 
-const stt = new SpeechInput({
+const sttHandlers: SttHandlers = {
   onPartial: () => bargeIn(),
   onFinal: (text) => {
     hud.showCaption(`“${text}”`);
     submitUtterance(text);
   },
   onVoiceActivity: () => bargeIn(),
-  onStateChange: (listening) => hud.setMicState(listening, stt.isOpenMic),
+  onStateChange: (listening: boolean) => hud.setMicState(listening, stt.isOpenMic),
   onUnavailable: () => {
     hud.setPill('stt', 'ears: unavailable', false);
-    hud.showCaption('Speech recognition unavailable in this browser — use the text box.');
+    hud.showCaption(
+      isNativeApp
+        ? 'Microphone permission needed — enable it in Android settings for this app.'
+        : 'Speech recognition unavailable in this browser — use the text box.',
+    );
   },
-});
+};
+const stt = isNativeApp ? new NativeSpeechInput(sttHandlers) : new SpeechInput(sttHandlers);
 
 hud.setPill('link', 'orchestrator: connecting…', false);
 const session = new SessionClient(settings.orchestratorUrl, {
@@ -102,6 +118,7 @@ function handleServerMessage(msg: Message): void {
     case 'server_status':
       debug.status = msg;
       hud.applyStatus(msg);
+      if (isNativeApp) hud.setPill('stt', 'ears: native', true);
       break;
 
     case 'agent_text_delta':
@@ -202,6 +219,12 @@ micBtn.addEventListener('pointerdown', () => {
 micBtn.addEventListener('pointerup', () => {
   if (holdTimer) window.clearTimeout(holdTimer);
   if (stt.isListening && !stt.isOpenMic) stt.stop();
+});
+document.getElementById('btn-keyboard')?.addEventListener('click', () => {
+  document.body.classList.toggle('show-keyboard');
+  if (document.body.classList.contains('show-keyboard')) {
+    (document.getElementById('chat-input') as HTMLInputElement).focus();
+  }
 });
 
 // ── Boot ─────────────────────────────────────────────────────────────────────

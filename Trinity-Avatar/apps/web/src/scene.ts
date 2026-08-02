@@ -16,7 +16,13 @@ export interface SceneBundle {
   setEnvironmentVisible(visible: boolean): void;
 }
 
-export function createScene(canvas: HTMLCanvasElement, opts: { transparent?: boolean } = {}): SceneBundle {
+export interface SceneOptions {
+  transparent?: boolean;
+  /** 'stage' = floor disc + grid + ring; 'void' = empty space, shadow only. */
+  environment?: 'stage' | 'void';
+}
+
+export function createScene(canvas: HTMLCanvasElement, opts: SceneOptions = {}): SceneBundle {
   const renderer = new THREE.WebGLRenderer({
     canvas,
     antialias: true,
@@ -67,31 +73,45 @@ export function createScene(canvas: HTMLCanvasElement, opts: { transparent?: boo
 
   scene.add(new THREE.AmbientLight(0x2a4a3c, 0.7));
 
-  // ── Environment: disc floor + grid, hidden in AR/overlay modes ───────────
+  // ── Environment ──────────────────────────────────────────────────────────
   const env = new THREE.Group();
   env.name = 'environment';
+  const isVoid = opts.environment === 'void';
 
-  const floor = new THREE.Mesh(
-    new THREE.CircleGeometry(4, 48),
-    new THREE.MeshStandardMaterial({ color: 0x071b12, roughness: 0.85, metalness: 0.1 }),
-  );
-  floor.rotation.x = -Math.PI / 2;
-  floor.receiveShadow = true;
-  env.add(floor);
+  if (isVoid) {
+    // Empty space: the avatar stands in a dark void, grounded only by a
+    // soft contact shadow (ShadowMaterial catches shadows, shows nothing else).
+    const shadowCatcher = new THREE.Mesh(
+      new THREE.CircleGeometry(3, 48),
+      new THREE.ShadowMaterial({ opacity: 0.45 }),
+    );
+    shadowCatcher.rotation.x = -Math.PI / 2;
+    shadowCatcher.receiveShadow = true;
+    env.add(shadowCatcher);
+    if (scene.fog) scene.fog = new THREE.FogExp2(0x04100b, 0.05);
+  } else {
+    const floor = new THREE.Mesh(
+      new THREE.CircleGeometry(4, 48),
+      new THREE.MeshStandardMaterial({ color: 0x071b12, roughness: 0.85, metalness: 0.1 }),
+    );
+    floor.rotation.x = -Math.PI / 2;
+    floor.receiveShadow = true;
+    env.add(floor);
 
-  const grid = new THREE.GridHelper(8, 32, 0x1d5c40, 0x0d3324);
-  (grid.material as THREE.Material).transparent = true;
-  (grid.material as THREE.Material).opacity = 0.5;
-  grid.position.y = 0.002;
-  env.add(grid);
+    const grid = new THREE.GridHelper(8, 32, 0x1d5c40, 0x0d3324);
+    (grid.material as THREE.Material).transparent = true;
+    (grid.material as THREE.Material).opacity = 0.5;
+    grid.position.y = 0.002;
+    env.add(grid);
 
-  const ring = new THREE.Mesh(
-    new THREE.RingGeometry(0.55, 0.58, 64),
-    new THREE.MeshBasicMaterial({ color: 0x22ff9a, transparent: true, opacity: 0.35 }),
-  );
-  ring.rotation.x = -Math.PI / 2;
-  ring.position.y = 0.004;
-  env.add(ring);
+    const ring = new THREE.Mesh(
+      new THREE.RingGeometry(0.55, 0.58, 64),
+      new THREE.MeshBasicMaterial({ color: 0x22ff9a, transparent: true, opacity: 0.35 }),
+    );
+    ring.rotation.x = -Math.PI / 2;
+    ring.position.y = 0.004;
+    env.add(ring);
+  }
 
   scene.add(env);
 

@@ -29,6 +29,11 @@ services/motion-service/weights/
 .DS_Store
 *.log
 
-# Capacitor generated platforms
+# Capacitor generated platforms — android/ is committed (ready to build);
+# ios/ stays generated (`pnpm add:ios`) since it needs macOS anyway.
 apps/mobile/ios/
-apps/mobile/android/
+apps/mobile/android/app/build/
+apps/mobile/android/build/
+apps/mobile/android/.gradle/
+apps/mobile/android/local.properties
+apps/mobile/android/app/src/main/assets/public/
