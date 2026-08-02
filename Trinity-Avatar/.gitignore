@@ -23,6 +23,8 @@ assets/avatars/*.vrm
 assets/avatars/*.glb
 apps/web/public/avatars/*.vrm
 apps/web/public/avatars/*.glb
+# …except our own generated Trinity skin (MIT, built by apps/web/scripts/)
+!apps/web/public/avatars/trinity.glb
 services/motion-service/weights/
 
 # Editor / OS

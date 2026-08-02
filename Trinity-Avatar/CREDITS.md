@@ -9,6 +9,7 @@ repository — setup scripts download them and their licenses apply.
 |---|---|---|---|
 | Default avatar `VRM1_Constraint_Twist_Sample.vrm` | [pixiv/three-vrm examples](https://github.com/pixiv/three-vrm) | **CC0-1.0** (per the three-vrm examples' model documentation) | `scripts/setup_avatar.sh` → `apps/web/public/avatars/default.vrm` (gitignored) |
 | Built-in procedural hologram avatar | this repo (`packages/avatar-core/src/vrm/procedural.ts`) | MIT (repo license) | generated at runtime, no assets |
+| Default "Trinity" skin `trinity.glb` | this repo (`apps/web/scripts/generate-trinity-skin.mjs`) | MIT (repo license) | committed; stylized from a user-provided reference photo (colors/outfit only, no likeness) |
 | Your own `.vrm` / `.glb` skins | you | yours — check redistribution terms before shipping | drag & drop or `VITE_DEFAULT_AVATAR` |
 
 ## Models

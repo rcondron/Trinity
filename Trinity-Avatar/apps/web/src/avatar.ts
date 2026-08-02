@@ -41,21 +41,30 @@ export class AvatarManager {
     this.onSwap?.(rig);
   }
 
-  /** Try the configured avatar URL; fall back to the procedural skin. */
+  /** Try avatar URLs in order; fall back to the procedural skin. */
   async loadDefault(): Promise<void> {
-    const url = (import.meta.env.VITE_DEFAULT_AVATAR as string | undefined) ?? '/avatars/default.vrm';
-    try {
-      const head = await fetch(url, { method: 'HEAD' });
-      const type = head.headers.get('content-type') ?? '';
-      // Vite dev server returns index.html for missing files — only trust
-      // real binary responses.
-      if (!head.ok || type.includes('text/html')) throw new Error(`no avatar at ${url}`);
-      this.install(await loadAvatar(url));
-      console.info(`[avatar] loaded ${url}`);
-    } catch {
-      this.install(new ProceduralRig());
-      console.info('[avatar] using built-in procedural skin (drop a .vrm to swap)');
+    const configured = import.meta.env.VITE_DEFAULT_AVATAR as string | undefined;
+    const candidates = [
+      ...(configured ? [configured] : []),
+      '/avatars/trinity.glb', // committed Trinity skin (generated in-repo)
+      '/avatars/default.vrm', // optional downloaded VRM (scripts/setup_avatar.sh)
+    ];
+    for (const url of candidates) {
+      try {
+        const head = await fetch(url, { method: 'HEAD' });
+        const type = head.headers.get('content-type') ?? '';
+        // Vite dev server returns index.html for missing files — only trust
+        // real binary responses.
+        if (!head.ok || type.includes('text/html')) continue;
+        this.install(await loadAvatar(url));
+        console.info(`[avatar] loaded ${url}`);
+        return;
+      } catch {
+        // try the next candidate
+      }
     }
+    this.install(new ProceduralRig());
+    console.info('[avatar] using built-in procedural skin (drop a .vrm to swap)');
   }
 
   async loadFromFile(file: File): Promise<void> {

@@ -176,9 +176,10 @@ class GlbRig implements AvatarRig {
       if (!target) continue;
       q.copy(target.rest).multiply(proxy.quaternion);
       target.node.quaternion.copy(q);
-      if (name === 'hips') {
-        target.node.position.add(proxy.position);
-        proxy.position.set(0, 0, 0);
+      if (name === 'hips' && proxy.position.lengthSq() > 0) {
+        // The animator writes absolute world-space hip positions (standing
+        // height ≈ 0.95 m, so a real pose is never at the origin).
+        target.node.position.copy(proxy.position);
       }
     }
   }
