@@ -103,20 +103,29 @@ export class Hud {
     const body = document.getElementById('settings-body')!;
     if (body.childElementCount > 0) return;
     const s = loadSettings();
+    const avatarUrl = localStorage.getItem('ta.avatarUrl') ?? '';
     body.innerHTML = `
       <label>Orchestrator WebSocket</label>
       <input id="set-orch" value="${s.orchestratorUrl}" />
       <label>Motion service WebSocket</label>
       <input id="set-motion" value="${s.motionUrl}" />
+      <label>Avatar URL (photoreal: readyplayer.me / avaturn.me link)</label>
+      <input id="set-avatar-url" value="${avatarUrl}"
+        placeholder="https://models.readyplayer.me/…glb?morphTargets=ARKit" />
       <button class="row-btn" id="set-save">Save & reload</button>
-      <label>Avatar skin (.vrm / .glb)</label>
+      <label>Avatar skin file (.vrm / .glb)</label>
       <input type="file" id="set-avatar" accept=".vrm,.glb" />
-      <p class="hint">Or drag & drop a file anywhere. API keys (ElevenLabs, Hermes) live in the
-      server's <code>.env</code> — see .env.example. Press <code>\`</code> for the debug overlay.</p>
+      <p class="hint">Or drag & drop a file anywhere. For a photoreal avatar of yourself:
+      make one from a selfie at readyplayer.me (add <code>?morphTargets=ARKit</code> to the
+      .glb link) or avaturn.me, paste the link above. API keys (ElevenLabs, Hermes) live in
+      the server's <code>.env</code>. Press <code>\`</code> for the debug overlay.</p>
     `;
     body.querySelector('#set-save')?.addEventListener('click', () => {
       localStorage.setItem('ta.orchestratorUrl', (body.querySelector('#set-orch') as HTMLInputElement).value.trim());
       localStorage.setItem('ta.motionUrl', (body.querySelector('#set-motion') as HTMLInputElement).value.trim());
+      const url = (body.querySelector('#set-avatar-url') as HTMLInputElement).value.trim();
+      if (url) localStorage.setItem('ta.avatarUrl', url);
+      else localStorage.removeItem('ta.avatarUrl');
       location.reload();
     });
     body.querySelector('#set-avatar')?.addEventListener('change', (e) => {

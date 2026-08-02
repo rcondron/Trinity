@@ -43,23 +43,33 @@ export class AvatarManager {
 
   /** Try avatar URLs in order; fall back to the procedural skin. */
   async loadDefault(): Promise<void> {
+    // Highest priority: a user-pasted URL (Settings → Avatar URL), e.g. a
+    // photoreal Ready Player Me / Avaturn link. Their CDNs serve CORS.
+    const userUrl = localStorage.getItem('ta.avatarUrl')?.trim();
     const configured = import.meta.env.VITE_DEFAULT_AVATAR as string | undefined;
     const candidates = [
+      ...(userUrl ? [userUrl] : []),
       ...(configured ? [configured] : []),
+      '/avatars/custom.glb', // drop your own file here to make it the default
+      '/avatars/custom.vrm',
       '/avatars/trinity.glb', // committed Trinity skin (generated in-repo)
       '/avatars/default.vrm', // optional downloaded VRM (scripts/setup_avatar.sh)
     ];
     for (const url of candidates) {
       try {
-        const head = await fetch(url, { method: 'HEAD' });
-        const type = head.headers.get('content-type') ?? '';
-        // Vite dev server returns index.html for missing files — only trust
-        // real binary responses.
-        if (!head.ok || type.includes('text/html')) continue;
+        // Local paths get a HEAD probe because the Vite dev server answers
+        // missing files with index.html; remote CDNs often reject HEAD, so
+        // absolute URLs go straight to the loader.
+        if (!/^https?:\/\//.test(url)) {
+          const head = await fetch(url, { method: 'HEAD' });
+          const type = head.headers.get('content-type') ?? '';
+          if (!head.ok || type.includes('text/html')) continue;
+        }
         this.install(await loadAvatar(url));
         console.info(`[avatar] loaded ${url}`);
         return;
-      } catch {
+      } catch (err) {
+        if (url === userUrl) console.warn(`[avatar] configured Avatar URL failed: ${url}`, err);
         // try the next candidate
       }
     }

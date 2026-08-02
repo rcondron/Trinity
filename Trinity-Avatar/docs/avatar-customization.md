@@ -1,5 +1,25 @@
 # Avatar customization
 
+## Photoreal avatar from a photo (recommended path)
+
+The app can't reconstruct a photoreal human itself, but it speaks the exact
+format the photo-to-avatar services output:
+
+1. Go to **[readyplayer.me](https://readyplayer.me)** (or
+   **[avaturn.me](https://avaturn.me)** for a more photoreal result) and
+   create a **full-body** avatar from your photo.
+2. Copy the avatar's `.glb` link. For Ready Player Me, append
+   **`?morphTargets=ARKit`** so the face ships with the ARKit blendshapes
+   that drive our lip sync and expressions:
+   `https://models.readyplayer.me/<id>.glb?morphTargets=ARKit`
+3. Paste it into **⚙ Settings → Avatar URL** — works on desktop *and* in the
+   Android app (no rebuild; the URL persists on the device).
+
+Alternatively download the `.glb` and drag & drop it, or save it as
+`apps/web/public/avatars/custom.glb` to make it the built default
+(that path is first in the fallback chain and ships in the APK on the next
+build).
+
 ## Swap the skin (no code)
 
 Three ways, in order of convenience:

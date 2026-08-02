@@ -55,6 +55,14 @@ Or open `apps/mobile/android/` in Android Studio and press Run.
   ElevenLabs key on the PC for her real voice + timestamped lip sync.
   Phone and PC must share a network; URLs persist on the phone.
 
+## Photoreal avatar on the phone
+
+Create a full-body avatar from a selfie at readyplayer.me, then in the app:
+⚙ Settings → **Avatar URL** → paste
+`https://models.readyplayer.me/<your-id>.glb?morphTargets=ARKit` → Save.
+No rebuild needed; the phone downloads it straight from their CDN
+(see docs/avatar-customization.md).
+
 ## UI notes
 
 - Big mic button: tap = open mic (continuous), hold = push-to-talk.
