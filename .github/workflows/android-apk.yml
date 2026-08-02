@@ -1,0 +1,47 @@
+name: android-apk
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, 'claude/ai-avatar-platform-9uaqsz']
+    paths: ['Trinity-Avatar/**', '.github/workflows/android-apk.yml']
+
+jobs:
+  apk:
+    name: build debug APK
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: Trinity-Avatar
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: Trinity-Avatar/pnpm-lock.yaml
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - run: pnpm install --frozen-lockfile
+
+      # Bundle the CC0 default VRM so the phone gets the full character
+      # (falls back to the built-in hologram avatar if the download fails).
+      - run: ./scripts/setup_avatar.sh || true
+
+      - run: pnpm --filter @trinity-avatar/web build
+      - run: pnpm exec cap sync android
+        working-directory: Trinity-Avatar/apps/mobile
+      - run: chmod +x gradlew && ./gradlew assembleDebug --no-daemon
+        working-directory: Trinity-Avatar/apps/mobile/android
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: trinity-avatar-debug-apk
+          path: Trinity-Avatar/apps/mobile/android/app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 30
