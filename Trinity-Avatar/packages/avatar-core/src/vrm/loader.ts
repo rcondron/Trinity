@@ -198,6 +198,9 @@ class GlbRig implements AvatarRig {
   >();
   private hipsParentInv = new THREE.Matrix4();
   private readonly morphMeshes: THREE.Mesh[] = [];
+  /** Bone-driven eyes for models without eyeLook morphs (rest local quat kept). */
+  private eyeBones: { left?: { node: THREE.Object3D; rest: THREE.Quaternion }; right?: { node: THREE.Object3D; rest: THREE.Quaternion } } = {};
+  private hasEyeLookMorphs = false;
 
   constructor(gltf: GLTF) {
     this.root = gltf.scene;
@@ -306,6 +309,21 @@ class GlbRig implements AvatarRig {
       hips.node.parent.updateWorldMatrix(true, false);
       this.hipsParentInv.copy(hips.node.parent.matrixWorld).invert();
     }
+
+    // Eye BONES (RPM-style rigs): drive gaze directly when the model ships
+    // no eyeLook morph targets — saccades/gaze keep working on static faces.
+    this.hasEyeLookMorphs = this.morphMeshes.some((m) =>
+      Object.keys(m.morphTargetDictionary ?? {}).some((k) => k.startsWith('eyeLook')),
+    );
+    this.root.traverse((o) => {
+      if (!(o as THREE.Bone).isBone) return;
+      const n = normalizeBoneName(o.name);
+      if (n === 'lefteye' || n === 'eyeleft') {
+        this.eyeBones.left = { node: o, rest: o.quaternion.clone() };
+      } else if (n === 'righteye' || n === 'eyeright') {
+        this.eyeBones.right = { node: o, rest: o.quaternion.clone() };
+      }
+    });
   }
 
   getBone(bone: VrmBoneName): THREE.Object3D | null {
@@ -324,7 +342,37 @@ class GlbRig implements AvatarRig {
         }
       }
     }
+
+    if (!this.hasEyeLookMorphs) {
+      const w = (k: keyof FaceWeights) => weights[k] ?? 0;
+      // +X is the character's left; positive yaw (about +Y) turns gaze that way.
+      const YAW_MAX = 0.35; // rad ≈ 20°
+      const PITCH_MAX = 0.25;
+      const apply = (
+        eye: { node: THREE.Object3D; rest: THREE.Quaternion } | undefined,
+        towardLeft: number,
+        up: number,
+      ) => {
+        if (!eye) return;
+        this.eyeEuler.set(-up * PITCH_MAX, towardLeft * YAW_MAX, 0, 'YXZ');
+        this.eyeDelta.setFromEuler(this.eyeEuler);
+        eye.node.quaternion.copy(eye.rest).multiply(this.eyeDelta);
+      };
+      apply(
+        this.eyeBones.left,
+        w('eyeLookOutLeft') - w('eyeLookInLeft'),
+        w('eyeLookUpLeft') - w('eyeLookDownLeft'),
+      );
+      apply(
+        this.eyeBones.right,
+        w('eyeLookInRight') - w('eyeLookOutRight'),
+        w('eyeLookUpRight') - w('eyeLookDownRight'),
+      );
+    }
   }
+
+  private readonly eyeEuler = new THREE.Euler();
+  private readonly eyeDelta = new THREE.Quaternion();
 
   private readonly tmpQ = new THREE.Quaternion();
   private readonly tmpV = new THREE.Vector3();
