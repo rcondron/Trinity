@@ -88,56 +88,106 @@ class VrmRig implements AvatarRig {
 
 /** VRM humanoid name → common GLB (Mixamo/Ready Player Me) bone names. */
 const VRM_TO_GLB_BONES: Record<VrmBoneName, string[]> = {
-  hips: ['Hips', 'mixamorigHips'],
-  spine: ['Spine', 'mixamorigSpine'],
-  chest: ['Spine1', 'mixamorigSpine1'],
-  upperChest: ['Spine2', 'mixamorigSpine2'],
-  neck: ['Neck', 'mixamorigNeck'],
-  head: ['Head', 'mixamorigHead'],
-  leftShoulder: ['LeftShoulder', 'mixamorigLeftShoulder'],
-  leftUpperArm: ['LeftArm', 'mixamorigLeftArm'],
-  leftLowerArm: ['LeftForeArm', 'mixamorigLeftForeArm'],
-  leftHand: ['LeftHand', 'mixamorigLeftHand'],
-  rightShoulder: ['RightShoulder', 'mixamorigRightShoulder'],
-  rightUpperArm: ['RightArm', 'mixamorigRightArm'],
-  rightLowerArm: ['RightForeArm', 'mixamorigRightForeArm'],
-  rightHand: ['RightHand', 'mixamorigRightHand'],
-  leftUpperLeg: ['LeftUpLeg', 'mixamorigLeftUpLeg'],
-  leftLowerLeg: ['LeftLeg', 'mixamorigLeftLeg'],
-  leftFoot: ['LeftFoot', 'mixamorigLeftFoot'],
-  leftToes: ['LeftToeBase', 'mixamorigLeftToeBase'],
-  rightUpperLeg: ['RightUpLeg', 'mixamorigRightUpLeg'],
-  rightLowerLeg: ['RightLeg', 'mixamorigRightLeg'],
-  rightFoot: ['RightFoot', 'mixamorigRightFoot'],
-  rightToes: ['RightToeBase', 'mixamorigRightToeBase'],
+  hips: ['Hips'],
+  spine: ['Spine'],
+  chest: ['Spine1'],
+  upperChest: ['Spine2'],
+  neck: ['Neck'],
+  head: ['Head'],
+  leftShoulder: ['LeftShoulder'],
+  leftUpperArm: ['LeftArm', 'LeftUpperArm'],
+  leftLowerArm: ['LeftForeArm', 'LeftLowerArm'],
+  leftHand: ['LeftHand'],
+  rightShoulder: ['RightShoulder'],
+  rightUpperArm: ['RightArm', 'RightUpperArm'],
+  rightLowerArm: ['RightForeArm', 'RightLowerArm'],
+  rightHand: ['RightHand'],
+  leftUpperLeg: ['LeftUpLeg', 'LeftUpperLeg'],
+  leftLowerLeg: ['LeftLeg', 'LeftLowerLeg'],
+  leftFoot: ['LeftFoot'],
+  leftToes: ['LeftToeBase', 'LeftToe'],
+  rightUpperLeg: ['RightUpLeg', 'RightUpperLeg'],
+  rightLowerLeg: ['RightLeg', 'RightLowerLeg'],
+  rightFoot: ['RightFoot'],
+  rightToes: ['RightToeBase', 'RightToe'],
 };
 
 /**
- * Wraps a raw GLB skeleton behind normalized proxy nodes: each proxy's
- * quaternion is applied as `rest * q` on the real bone, so identity = T-pose
- * like a VRM normalized humanoid.
+ * Normalize decorated rig names so exports from Mixamo/Sketchfab/DCCs all
+ * match: strips "mixamorig"/"Armature|" style prefixes and "_01" style
+ * numeric suffixes, drops separators, lowercases.
+ *   "mixamorig:LeftForeArm" → "leftforearm", "Hips_01" → "hips"
+ */
+export function normalizeBoneName(name: string): string {
+  return name
+    .replace(/^.*[|]/, '')
+    .replace(/^mixamorig[:_]?/i, '')
+    // strip "_01"-style suffixes — separator required, so "Spine1" survives
+    .replace(/[_-]\d+$/, '')
+    .replace(/[\s:_-]/g, '')
+    .toLowerCase();
+}
+
+/**
+ * Wraps a raw GLB skeleton behind normalized proxy nodes: identity proxy
+ * rotation = the model's rest (T-)pose, like a VRM normalized humanoid.
+ *
+ * Real rigs (Mixamo, Sketchfab exports) have arbitrary joint orientations,
+ * so proxy rotations — which live in world-aligned T-pose space — are
+ * converted per bone via its rest world orientation:
+ *   q_local = inv(parentRestWorld) · q_proxy · boneRestWorld
+ * (the inverse of three-vrm's Mixamo-animation conversion).
  */
 class GlbRig implements AvatarRig {
   readonly kind = 'glb';
   readonly root: THREE.Object3D;
   readonly hipsRestY: number;
   private readonly proxies = new Map<VrmBoneName, THREE.Object3D>();
-  private readonly real = new Map<VrmBoneName, { node: THREE.Object3D; rest: THREE.Quaternion }>();
+  private readonly real = new Map<
+    VrmBoneName,
+    { node: THREE.Object3D; pInvWorld: THREE.Quaternion; bWorld: THREE.Quaternion }
+  >();
+  private hipsParentInv = new THREE.Matrix4();
   private readonly morphMeshes: THREE.Mesh[] = [];
 
   constructor(gltf: GLTF) {
     this.root = gltf.scene;
+
+    // Normalize the model's size and grounding: some exports (Sketchfab,
+    // cm-unit DCCs) arrive 100× too big or floating above the origin.
+    this.root.updateWorldMatrix(true, true);
+    const bounds = new THREE.Box3().setFromObject(this.root);
+    const height = bounds.max.y - bounds.min.y;
+    if (height > 0 && (height < 0.5 || height > 3)) {
+      const s = 1.7 / height;
+      this.root.scale.multiplyScalar(s);
+      this.root.updateWorldMatrix(true, true);
+      bounds.setFromObject(this.root);
+    }
+    if (Math.abs(bounds.min.y) > 0.02) {
+      this.root.position.y -= bounds.min.y; // feet on the ground
+      this.root.updateWorldMatrix(true, true);
+    }
+
+    // Index nodes by normalized name so decorated rigs ("Hips_01",
+    // "mixamorig:LeftArm") still map onto the VRM humanoid.
     const byName = new Map<string, THREE.Object3D>();
     this.root.traverse((o) => {
-      byName.set(o.name, o);
+      const key = normalizeBoneName(o.name);
+      if (!byName.has(key)) byName.set(key, o);
       const mesh = o as THREE.Mesh;
       if (mesh.isMesh && mesh.morphTargetDictionary) this.morphMeshes.push(mesh);
     });
     for (const vrmName of Object.keys(VRM_TO_GLB_BONES) as VrmBoneName[]) {
       for (const candidate of VRM_TO_GLB_BONES[vrmName]) {
-        const node = byName.get(candidate);
+        const node = byName.get(normalizeBoneName(candidate));
         if (node) {
-          this.real.set(vrmName, { node, rest: node.quaternion.clone() });
+          const bWorld = new THREE.Quaternion();
+          node.getWorldQuaternion(bWorld);
+          const pInvWorld = new THREE.Quaternion();
+          (node.parent ?? this.root).getWorldQuaternion(pInvWorld);
+          pInvWorld.invert();
+          this.real.set(vrmName, { node, pInvWorld, bWorld });
           const proxy = new THREE.Object3D();
           proxy.name = `proxy_${vrmName}`;
           this.proxies.set(vrmName, proxy);
@@ -149,6 +199,10 @@ class GlbRig implements AvatarRig {
     const pos = new THREE.Vector3();
     hips?.node.getWorldPosition(pos);
     this.hipsRestY = pos.y || 0.95;
+    if (hips?.node.parent) {
+      hips.node.parent.updateWorldMatrix(true, false);
+      this.hipsParentInv.copy(hips.node.parent.matrixWorld).invert();
+    }
   }
 
   getBone(bone: VrmBoneName): THREE.Object3D | null {
@@ -169,17 +223,22 @@ class GlbRig implements AvatarRig {
     }
   }
 
+  private readonly tmpQ = new THREE.Quaternion();
+  private readonly tmpV = new THREE.Vector3();
+
   update(_dt: number): void {
-    const q = new THREE.Quaternion();
     for (const [name, proxy] of this.proxies) {
       const target = this.real.get(name);
       if (!target) continue;
-      q.copy(target.rest).multiply(proxy.quaternion);
-      target.node.quaternion.copy(q);
+      // world-aligned proxy rotation → this bone's local frame
+      this.tmpQ.copy(target.pInvWorld).multiply(proxy.quaternion).multiply(target.bWorld);
+      target.node.quaternion.copy(this.tmpQ);
       if (name === 'hips' && proxy.position.lengthSq() > 0) {
         // The animator writes absolute world-space hip positions (standing
-        // height ≈ 0.95 m, so a real pose is never at the origin).
-        target.node.position.copy(proxy.position);
+        // height ≈ 0.95 m, so a real pose is never at the origin); convert
+        // into the hips' parent space (handles scaled/rotated armatures).
+        this.tmpV.copy(proxy.position).applyMatrix4(this.hipsParentInv);
+        target.node.position.copy(this.tmpV);
       }
     }
   }

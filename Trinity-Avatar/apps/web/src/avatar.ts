@@ -33,6 +33,8 @@ export class AvatarManager {
       this.rig.dispose();
     }
     this.rig = rig;
+    // Debug hook for the console / automated checks: inspect the active rig.
+    (globalThis as { __trinityRig?: AvatarRig }).__trinityRig = rig;
     rig.root.traverse((o) => {
       o.castShadow = true;
     });

@@ -123,3 +123,16 @@ describe('FootLocker', () => {
     expect(Math.hypot(c[0], c[1])).toBeLessThan(0.05);
   });
 });
+
+describe('normalizeBoneName (decorated GLB rigs)', () => {
+  it('strips numeric suffixes, mixamo prefixes, and separators', async () => {
+    const { normalizeBoneName } = await import('../src/vrm/loader.js');
+    expect(normalizeBoneName('Hips_01')).toBe('hips');
+    expect(normalizeBoneName('mixamorig:LeftForeArm')).toBe('leftforearm');
+    expect(normalizeBoneName('mixamorigLeftArm')).toBe('leftarm');
+    expect(normalizeBoneName('Armature|Spine2_04')).toBe('spine2');
+    expect(normalizeBoneName('Left Shoulder-010')).toBe('leftshoulder');
+    // must not eat meaningful digits
+    expect(normalizeBoneName('Spine1')).toBe('spine1');
+  });
+});
