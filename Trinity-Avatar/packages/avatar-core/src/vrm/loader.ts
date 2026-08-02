@@ -129,14 +129,63 @@ export function normalizeBoneName(name: string): string {
 }
 
 /**
+ * Which child bone defines each bone's "limb direction", and the world-space
+ * direction that limb must point in a T-pose. Used to normalize A-pose (or
+ * any) rest poses: the correction rotating restDir → target is baked into
+ * the bone's rest orientation, so identity proxy rotation always means
+ * T-pose regardless of how the model was exported.
+ */
+const TPOSE_TARGETS: Partial<Record<VrmBoneName, { child: VrmBoneName; dir: [number, number, number] }>> = {
+  spine: { child: 'chest', dir: [0, 1, 0] },
+  chest: { child: 'upperChest', dir: [0, 1, 0] },
+  upperChest: { child: 'neck', dir: [0, 1, 0] },
+  neck: { child: 'head', dir: [0, 1, 0] },
+  leftUpperArm: { child: 'leftLowerArm', dir: [1, 0, 0] },
+  leftLowerArm: { child: 'leftHand', dir: [1, 0, 0] },
+  rightUpperArm: { child: 'rightLowerArm', dir: [-1, 0, 0] },
+  rightLowerArm: { child: 'rightHand', dir: [-1, 0, 0] },
+  leftUpperLeg: { child: 'leftLowerLeg', dir: [0, -1, 0] },
+  leftLowerLeg: { child: 'leftFoot', dir: [0, -1, 0] },
+  rightUpperLeg: { child: 'rightLowerLeg', dir: [0, -1, 0] },
+  rightLowerLeg: { child: 'rightFoot', dir: [0, -1, 0] },
+};
+
+/** Hierarchy-ordered bone list so parents are normalized before children. */
+const BONE_ORDER: VrmBoneName[] = [
+  'hips',
+  'spine',
+  'chest',
+  'upperChest',
+  'neck',
+  'head',
+  'leftShoulder',
+  'leftUpperArm',
+  'leftLowerArm',
+  'leftHand',
+  'rightShoulder',
+  'rightUpperArm',
+  'rightLowerArm',
+  'rightHand',
+  'leftUpperLeg',
+  'leftLowerLeg',
+  'leftFoot',
+  'leftToes',
+  'rightUpperLeg',
+  'rightLowerLeg',
+  'rightFoot',
+  'rightToes',
+];
+
+/**
  * Wraps a raw GLB skeleton behind normalized proxy nodes: identity proxy
- * rotation = the model's rest (T-)pose, like a VRM normalized humanoid.
+ * rotation = T-pose, like a VRM normalized humanoid.
  *
- * Real rigs (Mixamo, Sketchfab exports) have arbitrary joint orientations,
- * so proxy rotations — which live in world-aligned T-pose space — are
- * converted per bone via its rest world orientation:
- *   q_local = inv(parentRestWorld) · q_proxy · boneRestWorld
- * (the inverse of three-vrm's Mixamo-animation conversion).
+ * Real rigs (Mixamo, Sketchfab exports) have arbitrary joint orientations
+ * and arbitrary rest poses (T-pose or A-pose), so proxy rotations — which
+ * live in world-aligned T-pose space — are converted per bone:
+ *   q_local = inv(correctedParentRestWorld) · q_proxy · correctedRestWorld
+ * where "corrected" bakes in the rest-pose → T-pose normalization measured
+ * from the skeleton's own limb directions.
  */
 class GlbRig implements AvatarRig {
   readonly kind = 'glb';
@@ -178,22 +227,76 @@ class GlbRig implements AvatarRig {
       const mesh = o as THREE.Mesh;
       if (mesh.isMesh && mesh.morphTargetDictionary) this.morphMeshes.push(mesh);
     });
-    for (const vrmName of Object.keys(VRM_TO_GLB_BONES) as VrmBoneName[]) {
+    // Pass 1 — locate nodes, capture rest world orientations/positions.
+    const found = new Map<
+      VrmBoneName,
+      { node: THREE.Object3D; restWorld: THREE.Quaternion; restPos: THREE.Vector3 }
+    >();
+    const nodeToVrm = new Map<THREE.Object3D, VrmBoneName>();
+    for (const vrmName of BONE_ORDER) {
       for (const candidate of VRM_TO_GLB_BONES[vrmName]) {
         const node = byName.get(normalizeBoneName(candidate));
         if (node) {
-          const bWorld = new THREE.Quaternion();
-          node.getWorldQuaternion(bWorld);
-          const pInvWorld = new THREE.Quaternion();
-          (node.parent ?? this.root).getWorldQuaternion(pInvWorld);
-          pInvWorld.invert();
-          this.real.set(vrmName, { node, pInvWorld, bWorld });
-          const proxy = new THREE.Object3D();
-          proxy.name = `proxy_${vrmName}`;
-          this.proxies.set(vrmName, proxy);
+          const restWorld = new THREE.Quaternion();
+          node.getWorldQuaternion(restWorld);
+          const restPos = new THREE.Vector3();
+          node.getWorldPosition(restPos);
+          found.set(vrmName, { node, restWorld, restPos });
+          nodeToVrm.set(node, vrmName);
           break;
         }
       }
+    }
+
+    // Pass 2 — normalize the rest pose to T-pose. For each bone, the world
+    // correction accumulated from mapped ancestors (delta) rotates its limb
+    // direction; if a T-pose target is defined and the limb points elsewhere
+    // (A-pose exports), an additional correction is baked into its rest.
+    const deltas = new Map<VrmBoneName, THREE.Quaternion>(); // accumulated world correction
+    const dirNow = new THREE.Vector3();
+    const target = new THREE.Vector3();
+    for (const vrmName of BONE_ORDER) {
+      const entry = found.get(vrmName);
+      if (!entry) continue;
+
+      // nearest mapped ancestor's accumulated correction
+      let anc: THREE.Object3D | null = entry.node.parent;
+      let ancDelta = new THREE.Quaternion();
+      while (anc) {
+        const ancVrm = nodeToVrm.get(anc);
+        if (ancVrm && deltas.has(ancVrm)) {
+          ancDelta = deltas.get(ancVrm)!;
+          break;
+        }
+        anc = anc.parent;
+      }
+
+      const parentRestWorld = new THREE.Quaternion();
+      (entry.node.parent ?? this.root).getWorldQuaternion(parentRestWorld);
+      const correctedParent = ancDelta.clone().multiply(parentRestWorld);
+      let correctedRest = ancDelta.clone().multiply(entry.restWorld);
+
+      const t = TPOSE_TARGETS[vrmName];
+      const child = t ? found.get(t.child) : undefined;
+      if (t && child) {
+        dirNow.copy(child.restPos).sub(entry.restPos);
+        if (dirNow.lengthSq() > 1e-8) {
+          dirNow.normalize().applyQuaternion(ancDelta);
+          target.set(t.dir[0], t.dir[1], t.dir[2]);
+          const fix = new THREE.Quaternion().setFromUnitVectors(dirNow, target);
+          correctedRest = fix.multiply(correctedRest);
+        }
+      }
+      deltas.set(vrmName, correctedRest.clone().multiply(entry.restWorld.clone().invert()));
+
+      this.real.set(vrmName, {
+        node: entry.node,
+        pInvWorld: correctedParent.invert(),
+        bWorld: correctedRest,
+      });
+      const proxy = new THREE.Object3D();
+      proxy.name = `proxy_${vrmName}`;
+      this.proxies.set(vrmName, proxy);
     }
     const hips = this.real.get('hips');
     const pos = new THREE.Vector3();
